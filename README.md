@@ -13,7 +13,7 @@ focusing on reducing boilerplate through "smart defaults" and internal automatio
 
 ## Features:
 
-* **Smart Response Builders**: Methods like `.json()`, `.html()`, and `.stream()`` automatically set the correct `Content-Type` and required headers.
+* **Smart Response Builders**: Methods like `.json()`, `.html()`, and `.stream()` automatically set the correct `Content-Type` and required headers.
 * **Automatic SSE Configuration**: Streaming responses come pre-configured with `no-cache`, `keep-alive`, and `nosniff` headers.
 * **Safe File Downloads**: Built-in attachment support with automatic `URL-encoding` for `non-ASCII` filenames.
 * **Declarative Validation**: Integration with the `Validate` trait for complex request-level schema logic.
