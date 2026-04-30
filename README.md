@@ -115,7 +115,7 @@ async fn handle_auth(headers: Headers, payload: Json<LoginData>) -> Response {
 
     // data validation:
     if let Err(e) = payload.validate() {
-        return Response::new(422).json(&format!("Validation failed: {e:?}"));
+        return Response::bad_entity().json(&format!("Validation failed: {e:?}"));
     }
 
     let identity = payload.email.as_ref().or(payload.login.as_ref()).unwrap();
