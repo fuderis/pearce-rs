@@ -1,0 +1,22 @@
+[package]
+name = "pearce"
+description = "A high-level, asynchronous web-framework built on top of Axum"
+keywords = ["web", "framework", "axum", "routing"]
+categories = ["development-tools", "rust-patterns"]
+version = "0.1.0"
+license = "MIT"
+authors = ["Bulat Sh. <synapdrake@ya.ru>"]
+repository = "https://github.com/fuderis/pearce-rs"
+readme = "README.md"
+edition = "2024"
+
+[dependencies]
+macron = { version = "0.1.18", features = ["derive", "string"] }
+atoman = { version = "0.2.19", features = ["stream"] }
+tokio = { version = "1.52.0", features = ["full"] }
+axum = { version = "0.8.8" }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.149" }
+urlencoding = "2.1.3"
+validator = { version = "0.20.0", features = ["derive"] }
+
