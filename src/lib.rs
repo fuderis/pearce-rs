@@ -1,9 +1,8 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 pub mod prelude;
-mod result;
 
 pub mod server;
-pub use server::{Header, HeaderBody, Headers, IpAddr, Response, Server, Status};
+pub use server::{Addr, Header, HeaderBody, Headers, Response, Server, Status};
 
 pub use atoman::{self, Bytes, Stream, StreamReader, StreamSender};
 pub use axum::{

@@ -3,23 +3,29 @@ use crate::prelude::*;
 
 use axum::{
     body::Body,
-    http::{HeaderValue, response::Builder},
+    http::{HeaderMap, HeaderValue, StatusCode, response::Builder},
     response::{IntoResponse, Response as AxumResponse},
 };
+use bytes::Bytes;
 use futures::Stream as FuturesStream;
+use std::result::Result as StdResult;
 
 /// The HTTP response builder
 pub struct Response {
-    builder: Builder,
+    status: StatusCode,
+    headers: HeaderMap,
     body: Body,
+    err: Option<DynError>,
 }
 
 impl Response {
     /// Creates a new response builder
     pub fn new(status: impl Into<Status>) -> Self {
         Self {
-            builder: Builder::new().status(status.into().0),
+            status: status.into().try_into().expect("Invalid status code"),
+            headers: HeaderMap::new(),
             body: Body::empty(),
+            err: None,
         }
     }
 
@@ -27,101 +33,64 @@ impl Response {
 
     /// Changes the status code (for example, 201, 404, 500)
     pub fn status(mut self, status: impl Into<Status>) -> Self {
-        self.builder = self.builder.status(status.into().0);
+        self.status = status.into().try_into().expect("Invalid status code");
         self
     }
 
-    /// Creates a new response with 200 code
     pub fn ok() -> Self {
         Self::new(200)
     }
-
-    /// Creates a new response with 201 code
     pub fn created() -> Self {
         Self::new(201)
     }
-
-    /// Creates a new response with 204 code
     pub fn no_content() -> Self {
         Self::new(204)
     }
-
-    /// Creates a new response with 301 code
     pub fn redirect() -> Self {
         Self::new(301)
     }
-
-    /// Creates a new response with 302 code
     pub fn temp_redirect() -> Self {
         Self::new(302)
     }
-
-    /// Creates a new response with 304 code
     pub fn not_modified() -> Self {
         Self::new(304)
     }
-
-    /// Creates a new response with 400 code
     pub fn bad_request() -> Self {
         Self::new(400)
     }
-
-    /// Creates a new response with 401 code
     pub fn unauthorized() -> Self {
         Self::new(401)
     }
-
-    /// Creates a new response with 403 code
     pub fn forbidden() -> Self {
         Self::new(403)
     }
-
-    /// Creates a new response with 404 code
     pub fn not_found() -> Self {
         Self::new(404)
     }
-
-    /// Creates a new response with 405 code
     pub fn bad_method() -> Self {
         Self::new(405)
     }
-
-    /// Creates a new response with 409 code
     pub fn conflict() -> Self {
         Self::new(409)
     }
-
-    /// Creates a new response with 413 code
     pub fn too_large() -> Self {
         Self::new(413)
     }
-
-    /// Creates a new response with 422 code
     pub fn bad_entity() -> Self {
         Self::new(422)
     }
-
-    /// Creates a new response with 429 code
     pub fn rate_limited() -> Self {
         Self::new(429)
     }
-
-    /// Creates a new response with 500 code
-    pub fn server_error() -> Self {
+    pub fn error() -> Self {
         Self::new(500)
     }
-
-    /// Creates a new response with 502 code
     pub fn bad_gateway() -> Self {
         Self::new(502)
     }
-
-    /// Creates a new response with 503 code
     pub fn unavailable() -> Self {
         Self::new(503)
     }
-
-    /// Creates a new response with 504 code
     pub fn timeout() -> Self {
         Self::new(504)
     }
@@ -133,35 +102,41 @@ impl Response {
         mut self,
         header: impl Into<Header>,
         value: impl Into<HeaderBody<'a>>,
-    ) -> Result<Self> {
-        self.builder = self
-            .builder
-            .header(header.into().0, HeaderValue::from_str(value.into().0)?);
-        Ok(self)
+    ) -> Self {
+        if self.err.is_some() {
+            return self;
+        }
+
+        match HeaderValue::from_str(value.into().0) {
+            Ok(val) => {
+                self.headers.insert(header.into().0, val);
+            }
+            Err(e) => {
+                self.err = Some(e.into());
+            }
+        }
+        self
     }
 
     /// Sets the HTTPS-only connect header
     pub fn https_only(self, seconds: u64) -> Self {
-        self.header(
-            Header::StrictTransportSecurity,
-            str!("max-age={}; includeSubDomains", seconds).as_str(),
-        )
-        .unwrap()
+        let val = format!("max-age={}; includeSubDomains", seconds);
+        self.header(Header::StrictTransportSecurity, val.as_str())
     }
 
     /// Sets the iframe options header
     pub fn no_iframe(self) -> Self {
-        self.header(Header::XFrameOptions, "DENY").unwrap()
+        self.header(Header::XFrameOptions, "DENY")
     }
 
     /// Sets the content sniff options header
     pub fn no_sniff(self) -> Self {
-        self.header(Header::XContentTypeOptions, "nosniff").unwrap()
+        self.header(Header::XContentTypeOptions, "nosniff")
     }
 
     /// Sets the cache control options header
     pub fn cache_control<'a>(self, value: impl Into<HeaderBody<'a>>) -> Self {
-        self.header(Header::CacheControl, value).unwrap()
+        self.header(Header::CacheControl, value)
     }
 
     /// Sets the cache control options header
@@ -171,74 +146,69 @@ impl Response {
 
     /// Sets the content-type header
     pub fn content_type<'a>(self, value: impl Into<HeaderBody<'a>>) -> Self {
-        self.header(Header::ContentType, value).unwrap()
+        self.header(Header::ContentType, value)
     }
 
-    /// Sets the content-type=TEXT header
     pub fn content_type_text(self) -> Self {
         self.content_type("text/plain; charset=utf-8")
     }
 
-    /// Sets the content-type=JSON header
     pub fn content_type_json(self) -> Self {
         self.content_type("application/json")
     }
 
-    /// Sets the content-type=HTML header
     pub fn content_type_html(self) -> Self {
         self.content_type("text/html; charset=utf-8")
     }
 
-    /// Sets the content-type=EVENT-STREAM header
     pub fn content_type_stream(self) -> Self {
         self.header(Header::ContentType, "text/event-stream")
-            .unwrap()
             .header(Header::CacheControl, "no-cache")
-            .unwrap()
             .header(Header::Connection, "keep-alive")
-            .unwrap()
             .header(Header::XContentTypeOptions, "nosniff")
-            .unwrap()
     }
 
-    /// Sets the access control header
     pub fn allow_origin(self) -> Self {
-        self.header(Header::AccessControlAllowOrigin, "").unwrap()
+        self.header(Header::AccessControlAllowOrigin, "*")
     }
 
-    /// Sets the access control header
     pub fn allow_methods(self) -> Self {
-        self.header(Header::AccessControlAllowMethods, "").unwrap()
+        self.header(
+            Header::AccessControlAllowMethods,
+            "GET, POST, PUT, DELETE, OPTIONS",
+        )
     }
 
-    /// Sets the access control header
     pub fn allow_headers(self) -> Self {
-        self.header(Header::AccessControlAllowHeaders, "").unwrap()
+        self.header(
+            Header::AccessControlAllowHeaders,
+            "Content-Type, Authorization",
+        )
     }
 
     /// Sets the file attachment header
-    pub fn attachment(self, filename: &str) -> Result<Self> {
+    pub fn attachment(self, filename: &str) -> Self {
         let value = if filename.is_ascii() {
-            filename
+            filename.to_string()
         } else {
-            &urlencoding::encode(filename)
+            urlencoding::encode(filename).into_owned()
         };
 
         self.header(
             Header::ContentDisposition,
-            str!("attachment; filename*=UTF-8''{value}").as_str(),
+            format!("attachment; filename*=UTF-8''{value}").as_str(),
         )
     }
 
     /// Sets the redirect location header
-    pub fn location(self, uri: &str) -> Result<Self> {
+    pub fn location(self, uri: &str) -> Self {
         let value = if uri.is_ascii() {
-            uri
+            uri.to_string()
         } else {
-            &urlencoding::encode(uri)
+            urlencoding::encode(uri).into_owned()
         };
 
-        self.header(Header::Location, value)
+        self.header(Header::Location, value.as_str())
     }
 
     // --- HTTP BODY ---
@@ -270,7 +240,8 @@ impl Response {
                 self
             }
             Err(e) => {
-                self = self.status(500).content_type_json();
+                self.status = StatusCode::INTERNAL_SERVER_ERROR;
+                self = self.content_type_json();
                 self.body = Body::from(format!(r#"{{"error":"Serialization failed: {}"}}"#, e));
                 self
             }
@@ -291,11 +262,27 @@ impl Response {
 
 impl IntoResponse for Response {
     fn into_response(self) -> AxumResponse {
-        match self.builder.body(self.body) {
+        // if error — return 500:
+        if let Some(e) = self.err {
+            return AxumResponse::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .header("content-type", "text/plain; charset=utf-8")
+                .body(Body::from(format!("Internal Server Error: {e}")))
+                .unwrap();
+        }
+
+        // build Axum Response:
+        let mut builder = Builder::new().status(self.status);
+
+        if let Some(headers_mut) = builder.headers_mut() {
+            *headers_mut = self.headers;
+        }
+
+        match builder.body(self.body) {
             Ok(r) => r,
             Err(e) => AxumResponse::builder()
-                .status(500)
-                .body(Body::from(str!("{e}")))
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Body::from(format!("Response build failed: {e}")))
                 .unwrap(),
         }
     }

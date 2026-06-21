@@ -1,5 +1,5 @@
 pub mod addr;
-pub use addr::IpAddr;
+pub use addr::Addr;
 
 pub mod status;
 pub use status::Status;
@@ -16,7 +16,8 @@ use axum::{
     handler::Handler,
     routing::{get, post},
 };
-use tokio::net::TcpListener;
+use tokio::fs;
+use tokio::net::{TcpListener, UnixListener};
 
 /// The Axum server wrapper
 pub struct Server {
@@ -57,10 +58,28 @@ impl Server {
         self
     }
 
-    /// Launching the server at a specific address
-    pub async fn run(self, addr: impl Into<IpAddr>) -> Result<()> {
-        let listener = TcpListener::bind(addr.into().0).await?;
-        axum::serve(listener, self.router).await?;
+    /// Launching the server at a specific address (TCP or UDS)
+    pub async fn run(self, addr: impl Into<Addr>) -> Result<()> {
+        match addr.into() {
+            // TCP protocol:
+            Addr::Ip(socket_addr) => {
+                let listener = TcpListener::bind(socket_addr).await?;
+                axum::serve(listener, self.router).await?;
+            }
+
+            // UDS protocol:
+            Addr::Path(path_buf) => {
+                // remove old socket (is exists):
+                if path_buf.exists() {
+                    fs::remove_file(&path_buf).await?;
+                }
+
+                let listener = UnixListener::bind(&path_buf)?;
+                let make_service = self.router.into_make_service();
+                axum::serve(listener, make_service).await?;
+            }
+        }
+
         Ok(())
     }
 }

@@ -1,6 +1,8 @@
 #![allow(non_upper_case_globals)]
 use crate::prelude::*;
 
+use axum::http::StatusCode;
+
 /// The HTTP status code
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -162,5 +164,13 @@ impl From<u16> for Status {
 impl From<Status> for u16 {
     fn from(status: Status) -> Self {
         status.0
+    }
+}
+
+impl TryInto<StatusCode> for Status {
+    type Error = DynError;
+
+    fn try_into(self) -> Result<StatusCode> {
+        Ok(StatusCode::from_u16(self.0)?)
     }
 }

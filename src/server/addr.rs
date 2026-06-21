@@ -1,52 +1,86 @@
-use std::net::{IpAddr as StdIpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+use crate::prelude::*;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 
-/// The server IP address wrapper
+/// The server endpoint wrapper
 #[derive(Debug)]
-pub struct IpAddr(pub SocketAddr);
+pub enum Addr {
+    Ip(SocketAddr),
+    Path(PathBuf),
+}
 
-impl From<([u8; 4], u16)> for IpAddr {
+impl From<([u8; 4], u16)> for Addr {
     fn from(value: ([u8; 4], u16)) -> Self {
-        Self(value.into())
+        Self::Ip(value.into())
     }
 }
 
-impl From<([u16; 8], u16)> for IpAddr {
+impl From<([u16; 8], u16)> for Addr {
     fn from(value: ([u16; 8], u16)) -> Self {
-        Self(value.into())
+        Self::Ip(value.into())
     }
 }
 
-impl From<([u8; 16], u16)> for IpAddr {
+impl From<([u8; 16], u16)> for Addr {
     fn from(value: ([u8; 16], u16)) -> Self {
-        Self(value.into())
+        Self::Ip(value.into())
     }
 }
-impl From<u16> for IpAddr {
+impl From<u16> for Addr {
     fn from(value: u16) -> Self {
-        Self(([127, 0, 0, 1], value).into())
+        Self::Ip(([127, 0, 0, 1], value).into())
     }
 }
 
-impl From<SocketAddr> for IpAddr {
+impl From<SocketAddr> for Addr {
     fn from(addr: SocketAddr) -> Self {
-        Self(addr)
+        Self::Ip(addr)
     }
 }
 
-impl From<Ipv4Addr> for IpAddr {
+impl From<Ipv4Addr> for Addr {
     fn from(ip: Ipv4Addr) -> Self {
-        Self(SocketAddr::new(StdIpAddr::V4(ip), 0))
+        Self::Ip(SocketAddr::new(IpAddr::V4(ip), 0))
     }
 }
 
-impl From<Ipv6Addr> for IpAddr {
+impl From<Ipv6Addr> for Addr {
     fn from(ip: Ipv6Addr) -> Self {
-        Self(SocketAddr::new(StdIpAddr::V6(ip), 0))
+        Self::Ip(SocketAddr::new(IpAddr::V6(ip), 0))
     }
 }
 
-impl From<StdIpAddr> for IpAddr {
-    fn from(ip: StdIpAddr) -> Self {
-        Self(SocketAddr::new(ip, 0))
+impl From<IpAddr> for Addr {
+    fn from(ip: IpAddr) -> Self {
+        Self::Ip(SocketAddr::new(ip, 0))
+    }
+}
+
+impl From<&str> for Addr {
+    fn from(path: &str) -> Self {
+        Self::Path(PathBuf::from(path))
+    }
+}
+
+impl From<String> for Addr {
+    fn from(path: String) -> Self {
+        Self::Path(PathBuf::from(path))
+    }
+}
+
+impl From<&Path> for Addr {
+    fn from(path: &Path) -> Self {
+        Self::Path(path.to_path_buf())
+    }
+}
+
+impl From<PathBuf> for Addr {
+    fn from(path: PathBuf) -> Self {
+        Self::Path(path)
+    }
+}
+
+impl From<&PathBuf> for Addr {
+    fn from(path: &PathBuf) -> Self {
+        Self::Path(path.clone())
     }
 }

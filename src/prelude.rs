@@ -1,5 +1,8 @@
 #![allow(unused_imports)]
-pub(crate) use crate::result::*;
+pub use std::result::Result as StdResult;
+pub type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
+pub type Result<T> = StdResult<T, DynError>;
+
 pub(crate) use atoman::*;
 pub(crate) use macron::*;
 
@@ -9,5 +12,3 @@ pub(crate) use std::{
 };
 
 pub(crate) use serde::{Deserialize, Serialize};
-
-pub use crate::*;
