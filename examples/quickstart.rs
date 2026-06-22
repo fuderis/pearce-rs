@@ -1,3 +1,4 @@
+#![cfg(feature = "server")]
 use pearce::{Headers, Json, Query, Response, Server, Stream, Validate, ValidationError};
 use serde::{Deserialize, Serialize};
 use tokio::time;

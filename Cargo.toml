@@ -3,7 +3,7 @@ name = "pearce"
 description = "A high-level, asynchronous web-framework built on top of Axum"
 keywords = ["web", "framework", "axum", "routing"]
 categories = ["development-tools", "rust-patterns"]
-version = "0.1.1"
+version = "0.2.0"
 license = "MIT"
 authors = ["Bulat Sh. <synapdrake@ya.ru>"]
 repository = "https://github.com/fuderis/pearce-rs"
@@ -11,12 +11,22 @@ readme = "README.md"
 edition = "2024"
 
 [dependencies]
-macron = { version = "0.1.18", features = ["derive", "string"] }
-atoman = { version = "0.2.19", features = ["stream"] }
+macron = { version = "0.2.1", features = ["derive", "string", "path", "async-recursion"] }
+atoman = { version = "0.3.0", features = ["stream"] }
 tokio = { version = "1.52.0", features = ["full"] }
-axum = { version = "0.8.8" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149" }
-urlencoding = "2.1.3"
-validator = { version = "0.20.0", features = ["derive"] }
 
+axum = { version = "0.8.8", optional = true }
+urlencoding = { version ="2.1.3", optional = true }
+validator = { version = "0.20.0", features = ["derive"], optional = true }
+tower = { version = "0.5.3", features = ["util"], optional = true }
+hyper-util = { version = "0.1.20", features = ["client", "client-legacy", "server-auto"], optional = true }
+
+reqwest = { version = "0.13", features = ["stream", "json"], optional = true }
+hyper = { version = "1.10.1", optional = true }
+
+[features]
+full = ["server", "client"]
+server = ["dep:axum", "dep:urlencoding", "dep:validator", "dep:tower", "dep:hyper-util"]
+client = ["dep:reqwest", "dep:hyper"]

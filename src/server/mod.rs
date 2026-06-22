@@ -10,14 +10,26 @@ pub use header::{Header, HeaderBody, Headers};
 pub mod response;
 pub use response::Response;
 
+pub mod listener;
+pub use listener::IpcListener;
+
+pub use axum::{
+    self,
+    extract::{Json, Path as Paths, Query},
+};
+pub use urlencoding::{
+    self, decode as url_decode, decode_binary as url_decode_binary, encode as url_encode,
+    encode_binary as url_encode_binary,
+};
+pub use validator::{self, Validate, ValidationError};
+
 use crate::prelude::*;
 use axum::{
     Router,
     handler::Handler,
     routing::{get, post},
 };
-use tokio::fs;
-use tokio::net::{TcpListener, UnixListener};
+use tokio::net::TcpListener;
 
 /// The Axum server wrapper
 pub struct Server {
@@ -59,7 +71,8 @@ impl Server {
     }
 
     /// Launching the server at a specific address (TCP or UDS)
-    pub async fn run(self, addr: impl Into<Addr>) -> Result<()> {
+    #[async_recursion]
+    pub async fn run(self, addr: impl Into<Addr> + Send + 'static) -> Result<()> {
         match addr.into() {
             // TCP protocol:
             Addr::Ip(socket_addr) => {
@@ -67,19 +80,42 @@ impl Server {
                 axum::serve(listener, self.router).await?;
             }
 
-            // UDS protocol:
-            Addr::Path(path_buf) => {
-                // remove old socket (is exists):
-                if path_buf.exists() {
-                    fs::remove_file(&path_buf).await?;
-                }
+            // IPC protocol (by socket name):
+            Addr::Name(name) => {
+                let path = if cfg!(unix) {
+                    std::path::PathBuf::from(format!("/tmp/{name}.sock"))
+                } else {
+                    let base_dir =
+                        std::env::var("LOCALAPPDATA").unwrap_or_else(|_| ".".to_string());
+                    std::path::PathBuf::from(format!("{}\\..\\Local\\Temp\\{name}.sock", base_dir))
+                };
 
-                let listener = UnixListener::bind(&path_buf)?;
+                self.run(Addr::Path(path)).await?;
+            }
+
+            // IPC protocol (by socket path):
+            Addr::Path(path) => {
+                let listener = IpcListener::bind(&path)?;
+
+                let _socket_guard = SocketGuard { path };
                 let make_service = self.router.into_make_service();
-                axum::serve(listener, make_service).await?;
+
+                axum::serve(listener.inner, make_service).await?;
             }
         }
 
         Ok(())
+    }
+}
+
+struct SocketGuard {
+    path: std::path::PathBuf,
+}
+
+impl Drop for SocketGuard {
+    fn drop(&mut self) {
+        if self.path.exists() {
+            let _ = std::fs::remove_file(&self.path);
+        }
     }
 }

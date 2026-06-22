@@ -1,10 +1,18 @@
-use crate::prelude::*;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+use std::{
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+    path::{Path, PathBuf},
+};
 
 /// The server endpoint wrapper
 #[derive(Debug)]
 pub enum Addr {
+    // TCP protocol (standart HTTP endpoint)
     Ip(SocketAddr),
+
+    // IPC protocol (UDS for Unix, NP for Windows)
+    Name(String),
+
+    // IPC protocol (UDS for Unix, AF_UNIX for Windows)
     Path(PathBuf),
 }
 
@@ -56,14 +64,14 @@ impl From<IpAddr> for Addr {
 }
 
 impl From<&str> for Addr {
-    fn from(path: &str) -> Self {
-        Self::Path(PathBuf::from(path))
+    fn from(name: &str) -> Self {
+        Self::Name(name.into())
     }
 }
 
 impl From<String> for Addr {
-    fn from(path: String) -> Self {
-        Self::Path(PathBuf::from(path))
+    fn from(name: String) -> Self {
+        Self::Name(name)
     }
 }
 
@@ -76,11 +84,5 @@ impl From<&Path> for Addr {
 impl From<PathBuf> for Addr {
     fn from(path: PathBuf) -> Self {
         Self::Path(path)
-    }
-}
-
-impl From<&PathBuf> for Addr {
-    fn from(path: &PathBuf) -> Self {
-        Self::Path(path.clone())
     }
 }

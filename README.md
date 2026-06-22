@@ -20,7 +20,9 @@ focusing on reducing boilerplate through "smart defaults" and internal automatio
 * **Simplified Headers**: Easy-to-use `Headers` extractor to avoid manual `HeaderMap` manipulation.
 * **Flexible Payloads**: Built-in support for `JSON` data parsing.
 
-## Quick Start:
+## Examples:
+
+### Server (feature `server`):
 ```rust
 use pearce::{Headers, Json, Query, Response, Server, Stream, Validate, ValidationError};
 
@@ -35,12 +37,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .post("/test", handle_test)
         .post("/wait", handle_waiter)
         .post("/auth", handle_auth)
-        .run(8080) // or .run(([127,0,0,1], 8080))
+        .run(8080) // or .run(([127,0,0,1], 8080)) / .run("test-socket") / .run(PathBuf::from("/tmp/test.sock"))
         .await
 }
 ```
 
-### Basic Handlers
+#### Basic Handlers
 
 Pearce handles routing and payload extraction automatically. Use Query<T> for URL parameters and Json<T> for request bodies.
 
@@ -63,7 +65,7 @@ async fn hello_page(payload: Query<QueryData>) -> Response {
 }
 ```
 
-### Real-Time Streaming (SSE)
+#### Real-Time Streaming (SSE)
 
 Create asynchronous streams for AI responses or progress updates with Stream::body.
 
@@ -81,7 +83,7 @@ async fn handle_waiter() -> Response {
 }
 ```
 
-### Headers & Validation
+#### Headers & Validation
 
 Pearce makes it easy to secure your API by extracting headers and validating incoming data structures using the Validate trait.
 
@@ -120,6 +122,29 @@ async fn handle_auth(headers: Headers, payload: Json<LoginData>) -> Response {
 
     let identity = payload.email.as_ref().or(payload.login.as_ref()).unwrap();
     Response::ok().text(format!("Welcome, {identity}!"))
+}
+```
+
+### Client (feature `client`)
+
+Pearce includes a pre-configured Client for both classic TCP networking and zero-overhead Inter-Process Communication
+(via Unix Domain Sockets on Linux/macOS and AF_UNIX on Windows wrappers).
+
+```rust
+use pearce::Client;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Standard TCP Client
+    let tcp_client = Client::tcp();
+    let response = tcp_client.get("https://example.com").send().await;
+
+    // Cross-platform IPC Client (communicating via Unix Domain Sockets)
+    let ipc_client = Client::ipc("/tmp/test.sock");
+    let payload = serde_json::json!({ "login": "admin", "password": "..." });
+    let response = ipc_client.post("/auth").json(&payload).send().await;
+
+    Ok(())
 }
 ```
 
