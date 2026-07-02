@@ -1,5 +1,5 @@
 #![cfg(feature = "server")]
-use pearce::{Headers, Json, Query, Response, Server, Stream, Validate, ValidationError};
+use pearce::{Headers, Json, Query, Response, Server, Validate, ValidationError};
 use serde::{Deserialize, Serialize};
 use tokio::time;
 
@@ -61,23 +61,21 @@ async fn handle_test(payload: Json<QueryData>) -> Response {
 
 // API: returns event-stream
 async fn handle_waiter() -> Response {
-    let body = Stream::body(async move |tx| {
+    Response::ok().stream(async move |tx| {
         for i in (1..=5).rev() {
             time::sleep(time::Duration::from_secs(1)).await;
 
             let msg = format!("Please, wait {i} seconds...");
             println!("{msg}");
 
-            tx.send(msg).ok();
+            tx.send(msg).await.ok();
         }
 
         let msg = "Finished!";
         println!("{msg}");
 
-        tx.send(msg).ok();
-    });
-
-    Response::ok().stream(body)
+        tx.send(msg).await.ok();
+    })
 }
 
 // --- HEADERS & VALIDATION ---
@@ -106,13 +104,13 @@ impl LoginData {
 
 // API: authorizes the user
 async fn handle_auth(headers: Headers, payload: Json<LoginData>) -> Response {
-    // check user-agent header:
+    // check user-agent header
     let user_agent = headers.get("user-agent").unwrap_or("");
     if user_agent.trim().is_empty() || user_agent.contains("Bot") || user_agent.contains("python") {
         return Response::new(403).text("Access denied: automated requests are not allowed.");
     }
 
-    // validate login data:
+    // validate login data
     if let Err(e) = payload.validate() {
         return Response::new(422).json(&format!("Validation failed: {:?}", e));
     }

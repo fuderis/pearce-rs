@@ -11,4 +11,7 @@ pub mod client;
 #[cfg(feature = "client")]
 pub use client::*;
 
-pub use atoman::{self, Bytes, Stream, StreamReader, StreamSender};
+#[cfg(feature = "stream")]
+pub mod stream;
+#[cfg(feature = "stream")]
+pub use stream::*;

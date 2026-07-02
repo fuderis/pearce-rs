@@ -74,13 +74,13 @@ impl Server {
     #[async_recursion]
     pub async fn run(self, addr: impl Into<Addr> + Send + 'static) -> Result<()> {
         match addr.into() {
-            // TCP protocol:
+            // TCP protocol
             Addr::Ip(socket_addr) => {
                 let listener = TcpListener::bind(socket_addr).await?;
                 axum::serve(listener, self.router).await?;
             }
 
-            // IPC protocol (by socket name):
+            // IPC protocol (by socket name)
             Addr::Name(name) => {
                 let path = if cfg!(unix) {
                     std::path::PathBuf::from(format!("/tmp/{name}.sock"))
@@ -93,7 +93,7 @@ impl Server {
                 self.run(Addr::Path(path)).await?;
             }
 
-            // IPC protocol (by socket path):
+            // IPC protocol (by socket path)
             Addr::Path(path) => {
                 let listener = IpcListener::bind(&path)?;
 

@@ -1,9 +1,9 @@
 [package]
 name = "pearce"
-description = "A high-level, asynchronous web-framework built on top of Axum"
+description = "An extension layer for Axum that enables rapid development of network services and agent-based infrastructure. Automates common route, handler, and server environment configuration, reducing the amount of boilerplate code."
 keywords = ["web", "framework", "axum", "routing"]
 categories = ["development-tools", "rust-patterns"]
-version = "0.2.0"
+version = "0.3.0"
 license = "MIT"
 authors = ["Bulat Sh. <synapdrake@ya.ru>"]
 repository = "https://github.com/fuderis/pearce-rs"
@@ -12,7 +12,7 @@ edition = "2024"
 
 [dependencies]
 macron = { version = "0.2.1", features = ["derive", "string", "path", "async-recursion"] }
-atoman = { version = "0.3.0", features = ["stream"] }
+atoman = { version = "0.4.0", features = ["channel"] }
 tokio = { version = "1.52.0", features = ["full"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149" }
@@ -26,7 +26,11 @@ hyper-util = { version = "0.1.20", features = ["client", "client-legacy", "serve
 reqwest = { version = "0.13", features = ["stream", "json"], optional = true }
 hyper = { version = "1.10.1", optional = true }
 
+bytes = { version = "1.12.0", optional = true }
+futures = { version = "0.3.32", optional = true }
+
 [features]
-full = ["server", "client"]
+full = ["server", "client", "stream"]
 server = ["dep:axum", "dep:urlencoding", "dep:validator", "dep:tower", "dep:hyper-util"]
 client = ["dep:reqwest", "dep:hyper"]
+stream = ["dep:bytes", "dep:futures"]

@@ -92,3 +92,25 @@ impl Client {
         }
     }
 }
+
+#[cfg(feature = "stream")]
+pub trait StreamExt {
+    fn stream<T>(self) -> impl std::future::Future<Output = Result<Receiver<T>>> + Send
+    where
+        T: serde::de::DeserializeOwned + Send + 'static;
+}
+
+#[cfg(feature = "stream")]
+impl StreamExt for reqwest::RequestBuilder {
+    async fn stream<T>(self) -> Result<Receiver<T>>
+    where
+        T: serde::de::DeserializeOwned + Send + 'static,
+    {
+        use futures::StreamExt;
+
+        let response = self.send().await?;
+        let stream = response.bytes_stream().map(|v| v.map_err(Into::into));
+
+        Ok(crate::stream_reader(stream))
+    }
+}

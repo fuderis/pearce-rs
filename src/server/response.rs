@@ -6,9 +6,6 @@ use axum::{
     http::{HeaderMap, HeaderValue, StatusCode, response::Builder},
     response::{IntoResponse, Response as AxumResponse},
 };
-use bytes::Bytes;
-use futures::Stream as FuturesStream;
-use std::result::Result as StdResult;
 
 /// The HTTP response builder
 pub struct Response {
@@ -248,21 +245,25 @@ impl Response {
         }
     }
 
-    /// Sets the stream event body
-    pub fn stream<S, E>(mut self, stream: S) -> Self
+    /// Sets the SSE stream body from handler
+    #[cfg(feature = "stream")]
+    pub fn stream<H, Fut>(mut self, handler: H) -> Self
     where
-        S: FuturesStream<Item = StdResult<Bytes, E>> + Send + 'static,
-        E: Into<Box<dyn std::error::Error + Send + Sync>>,
+        H: FnOnce(Sender<bytes::Bytes>) -> Fut + Send + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
     {
+        let body = crate::stream_body(handler);
+
         self = self.content_type_stream();
-        self.body = Body::from_stream(stream);
+        self.body = Body::from_stream(body);
+
         self
     }
 }
 
 impl IntoResponse for Response {
     fn into_response(self) -> AxumResponse {
-        // if error — return 500:
+        // if error — return 500
         if let Some(e) = self.err {
             return AxumResponse::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
@@ -271,7 +272,7 @@ impl IntoResponse for Response {
                 .unwrap();
         }
 
-        // build Axum Response:
+        // build Axum response
         let mut builder = Builder::new().status(self.status);
 
         if let Some(headers_mut) = builder.headers_mut() {

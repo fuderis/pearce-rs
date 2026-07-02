@@ -22,7 +22,7 @@ focusing on reducing boilerplate through "smart defaults" and internal automatio
 
 ## Examples:
 
-### Server (feature `server`):
+### Server [feature `server`]:
 ```rust
 use pearce::{Headers, Json, Query, Response, Server, Stream, Validate, ValidationError};
 
@@ -65,21 +65,27 @@ async fn hello_page(payload: Query<QueryData>) -> Response {
 }
 ```
 
-#### Real-Time Streaming (SSE)
+#### Real-Time Streaming (SSE) [feature `stream`]
 
 Create asynchronous streams for AI responses or progress updates with Stream::body.
 
 ```rust
 async fn handle_waiter() -> Response {
-    let body = Stream::body(async move |tx| {
+    Response::ok().stream(async move |tx| {
         for i in (1..=5).rev() {
             time::sleep(time::Duration::from_secs(1)).await;
-            tx.send(format!("Please, wait {i} seconds...")).ok();
-        }
-        tx.send("Finished!").ok();
-    });
 
-    Response::ok().stream(body)
+            let msg = format!("Please, wait {i} seconds...");
+            println!("{msg}");
+
+            tx.send(msg).await.ok();
+        }
+
+        let msg = "Finished!";
+        println!("{msg}");
+
+        tx.send(msg).await.ok();
+    })
 }
 ```
 
@@ -109,13 +115,13 @@ impl LoginData {
 }
 
 async fn handle_auth(headers: Headers, payload: Json<LoginData>) -> Response {
-    // easy header access:
+    // easy header access
     let user_agent = headers.get("user-agent");  // or .get(Header::UserAgent)
     if user_agent.trim().is_empty() || user_agent.contains("Bot") {
         return Response::forbidden().text("No bots allowed.");  // or ::new(403) or ::new(Status::Forbidden).
     }
 
-    // data validation:
+    // data validation
     if let Err(e) = payload.validate() {
         return Response::bad_entity().json(&format!("Validation failed: {e:?}"));
     }
@@ -125,7 +131,7 @@ async fn handle_auth(headers: Headers, payload: Json<LoginData>) -> Response {
 }
 ```
 
-### Client (feature `client`)
+### Client [feature `client`]
 
 Pearce includes a pre-configured Client for both classic TCP networking and zero-overhead Inter-Process Communication
 (via Unix Domain Sockets on Linux/macOS and AF_UNIX on Windows wrappers).
@@ -135,11 +141,11 @@ use pearce::Client;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // Standard TCP Client
+    // standard TCP client
     let tcp_client = Client::tcp();
     let response = tcp_client.get("https://example.com").send().await;
 
-    // Cross-platform IPC Client (communicating via Unix Domain Sockets)
+    // cross-platform IPC client (Unix Domain Sockets)
     let ipc_client = Client::ipc("/tmp/test.sock");
     let payload = serde_json::json!({ "login": "admin", "password": "..." });
     let response = ipc_client.post("/auth").json(&payload).send().await;
@@ -148,9 +154,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 ```
 
+#### SSE Stream Reading [feature `stream`]
+```rust
+use pearce::{Client, StreamExt};
+
+#[derive(Debug, serde::Deserialize)]
+struct Event {
+    id: u64,
+    message: String,
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // connect to an SSE endpoint
+    let mut rx = Client::tcp()
+        .get("http://localhost:8080/events")
+        .stream::<Event>()
+        .await?;
+
+    // read incoming events
+    while let Some(event) = rx.recv().await? {
+        println!("Received event: {:?}", event);
+    }
+
+    Ok(())
+}
+```
+
 ## License & Feedback:
 
-> This library distributed under the [MIT](https://github.com/fuderis/pearce-rs/blob/main/LICENSE.md) license.
+> Distributed under the [MIT](https://github.com/fuderis/pearce-rs/blob/main/LICENSE.md) license.
 
 You can contact me via [GitHub](https://github.com/fuderis) or send a message to my [E-Mail](mailto:synapdrake@ya.ru).
 This library is actively evolving, and your suggestions and feedback are always welcome!
