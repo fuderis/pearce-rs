@@ -78,12 +78,11 @@ async fn handle_waiter() -> Response {
             let msg = format!("Please, wait {i} seconds...");
             println!("{msg}");
 
-            tx.send(msg).await.ok();
+            tx.send(format!("\"{msg}\"")).await.ok();
         }
 
-        let msg = "Finished!";
+        let msg = "\"Finished!\"";
         println!("{msg}");
-
         tx.send(msg).await.ok();
     })
 }

@@ -13,16 +13,17 @@ where
     H: FnOnce(Sender<Bytes>) -> Fut + Send + 'static,
     Fut: Future<Output = ()> + Send + 'static,
 {
-    let (tx, rx) = channel::<Bytes>(None);
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<Result<Bytes>>();
 
     tokio::spawn(async move {
-        handler(tx).await;
+        let sender = Sender::from(tx);
+        handler(sender).await;
     });
 
     // creating a stream that wraps each incoming chunk in the SSE format:
     futures::stream::unfold(rx, |mut rx| async move {
         match rx.recv().await {
-            Ok(Some(bytes)) => {
+            Some(Ok(bytes)) => {
                 // formatting as SSE: "data: <payload>\n\n"
                 let mut sse_data = Vec::with_capacity(bytes.len() + 8);
                 sse_data.extend_from_slice(b"data: ");
@@ -31,8 +32,8 @@ where
 
                 Some((Ok(Bytes::from(sse_data)), rx))
             }
-            Err(e) => Some((Err(e), rx)),
-            Ok(None) => None,
+            Some(Err(e)) => Some((Err(e), rx)),
+            None => None,
         }
     })
 }
@@ -44,7 +45,7 @@ pub fn stream_reader<T>(
 where
     T: DeserializeOwned + Send + 'static,
 {
-    let (tx, rx) = channel::<T>(None);
+    let (tx, rx) = atoman::channel::<T>(None);
 
     tokio::spawn(async move {
         let mut buffer = BytesMut::new();
@@ -52,16 +53,16 @@ where
         while let Some(res) = source.next().await {
             match res {
                 Ok(bytes) => {
-                    // insert new bytes
+                    // insert new bytes:
                     buffer.extend_from_slice(&bytes);
 
                     // search chunk splitter (\n\n)
                     while let Some(pos) = buffer.windows(2).position(|w| w == b"\n\n") {
-                        // cut off exactly to the end of the message in O(1) without copying
+                        // cut off exactly to the end of the message in O(1) without copying:
                         // (buffer keeps everything AFTER pos +2, and full_message gets the start)
                         let full_message = buffer.split_to(pos + 2).freeze();
 
-                        // parsing from the byte slice (from_utf8 does not allocate)
+                        // parsing from the byte slice (from_utf8 does not allocate):
                         if let Ok(line) = std::str::from_utf8(&full_message) {
                             let trimmed = line.trim();
 
