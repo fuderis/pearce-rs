@@ -79,12 +79,12 @@ where
 
                                 match serde_json::from_str::<T>(json_part) {
                                     Ok(item) => {
-                                        if tx.send(item).await.is_err() {
+                                        if tx.send(item).is_err() {
                                             return;
                                         }
                                     }
                                     Err(e) => {
-                                        if tx.send_err(e.into()).await.is_err() {
+                                        if tx.send_err(e.into()).is_err() {
                                             return;
                                         }
                                     }
@@ -94,7 +94,7 @@ where
                     }
                 }
                 Err(e) => {
-                    tx.send_err(e.into()).await.ok();
+                    tx.send_err(e.into()).ok();
                     return;
                 }
             }

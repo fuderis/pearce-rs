@@ -33,9 +33,9 @@ dependencies = [
 
 [[package]]
 name = "atoman"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cf96f6df8e3063db24cb50a0c1329b5d5cb73b10241af883040d17b562bd7f5"
+checksum = "84dd822820ed59257cdd0327143cf3187d09c1f07b340c5cc50e94a28da223f7"
 dependencies = [
  "arc-swap",
  "macron 0.1.18",
@@ -1045,7 +1045,7 @@ dependencies = [
 
 [[package]]
 name = "pearce"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "atoman",
  "axum",
