@@ -4,6 +4,7 @@ use reqwest::{Client as ReqClient, Method, RequestBuilder};
 static TCP_CLIENT: State<ReqClient> = State::new(|| ReqClient::new());
 
 // The HTTP client
+#[derive(Debug, Clone)]
 pub struct Client {
     inner: ReqClient,
     base_url: Option<String>,
