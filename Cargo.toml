@@ -3,7 +3,7 @@ name = "pearce"
 description = "An extension layer for Axum that enables rapid development of network services and agent-based infrastructure. Automates common route, handler, and server environment configuration, reducing the amount of boilerplate code."
 keywords = ["web", "framework", "axum", "routing"]
 categories = ["development-tools", "rust-patterns"]
-version = "0.3.3"
+version = "0.3.4"
 license = "MIT"
 authors = ["Bulat Sh. <synapdrake@ya.ru>"]
 repository = "https://github.com/fuderis/pearce-rs"
@@ -11,8 +11,8 @@ readme = "README.md"
 edition = "2024"
 
 [dependencies]
-macron = { version = "0.2.1", features = ["derive", "string", "path", "async-recursion"] }
-atoman = { version = "0.4.2", features = ["channel"] }
+macron = { version = "0.5.0", features = ["derive", "string", "path", "async"] }
+atoman = { version = "0.4.5", features = ["channel"] }
 tokio = { version = "1.52.0", features = ["full"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149" }
