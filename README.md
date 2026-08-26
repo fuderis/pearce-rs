@@ -11,7 +11,7 @@
 Pearce is a high-level, asynchronous web-framework built on top of [Axum](https://docs.rs/axum). It is designed to provide a clean, declarative API for building robust microservices,
 focusing on reducing boilerplate through "smart defaults" and internal automation.
 
-## Features:
+## Features
 
 * **Smart Response Builders**: Methods like `.json()`, `.html()`, and `.stream()` automatically set the correct `Content-Type` and required headers.
 * **Automatic SSE Configuration**: Streaming responses come pre-configured with `no-cache`, `keep-alive`, and `nosniff` headers.
@@ -20,9 +20,9 @@ focusing on reducing boilerplate through "smart defaults" and internal automatio
 * **Simplified Headers**: Easy-to-use `Headers` extractor to avoid manual `HeaderMap` manipulation.
 * **Flexible Payloads**: Built-in support for `JSON` data parsing.
 
-## Examples:
+## Examples
 
-### Server [feature `server`]:
+### Server [feature `server`]
 ```rust
 use pearce::{Headers, Json, Query, Response, Server, Stream, Validate, ValidationError};
 
@@ -180,7 +180,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 ```
 
-## License & Feedback:
+## License & Feedback
 
 > Distributed under the [MIT](https://github.com/fuderis/pearce-rs/blob/main/LICENSE.md) license.
 
