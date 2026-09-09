@@ -4,9 +4,15 @@ pub mod prelude;
 
 #[cfg(feature = "server")]
 pub mod server;
+#[cfg(feature = "server")]
+pub use server::{Header, HeaderBody, Headers, Json, Paths, Query, Response, Server, Status, url};
 
 #[cfg(feature = "client")]
 pub mod client;
+#[cfg(feature = "client")]
+pub use client::{Client, StreamExt};
 
 #[cfg(feature = "stream")]
 pub mod stream;
+#[cfg(feature = "stream")]
+pub use stream::{Bytes, BytesMut, Receiver, Sender};

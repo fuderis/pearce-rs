@@ -23,10 +23,11 @@ pub use axum::{
     extract::{Json, Path as Paths, Query},
     routing,
 };
-pub use urlencoding::{
-    self, decode as url_decode, decode_binary as url_decode_binary, encode as url_encode,
-    encode_binary as url_encode_binary,
-};
+pub use urlencoding;
+pub mod url {
+    pub use urlencoding::{decode, decode_binary, encode, encode_binary};
+}
+
 pub use validator::{self, Validate, ValidationError};
 
 use crate::prelude::*;
