@@ -5,7 +5,9 @@ use macron::{Display, Error, From};
 pub enum Error {
     Io(std::io::Error),
 
-    #[cfg(feature = "stream")]
-    #[display = "Unexpected EOF with partial data"]
-    UnexpectedEOF,
+    #[display(fmt = "Callback timeout.")]
+    CallbackTimeout,
+
+    #[display(fmt = "Callback channel is closed.")]
+    CallbackClosed,
 }

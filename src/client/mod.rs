@@ -1,9 +1,12 @@
+//! HTTP client module.
+
 use crate::prelude::*;
+
 use reqwest::{Client as ReqClient, Method, RequestBuilder};
 
 static TCP_CLIENT: State<ReqClient> = State::new(|| ReqClient::new());
 
-// The HTTP client
+/// HTTP client (based on [reqwest]).
 #[derive(Debug, Clone)]
 pub struct Client {
     inner: ReqClient,
@@ -11,7 +14,7 @@ pub struct Client {
 }
 
 impl Client {
-    /// Creates a new TCP client (clone from state)
+    /// Creates new `TCP` client (clone from state).
     pub fn tcp() -> Self {
         Client {
             inner: TCP_CLIENT.dirty_get_cloned(),
@@ -19,7 +22,7 @@ impl Client {
         }
     }
 
-    /// Creates a new ICP client
+    /// Creates new `ICP` client.
     pub fn ipc(endpoint: &str) -> Self {
         let req_client = ReqClient::builder()
             .pool_max_idle_per_host(1) // important for IPC
@@ -34,48 +37,48 @@ impl Client {
         }
     }
 
-    /// Creates the request builder
+    /// Creates request builder.
     pub fn request(&self, method: Method, path: &str) -> RequestBuilder {
         let url = self.format_url(path);
         self.inner.request(method, url)
     }
 
-    /// Creates the GET request
+    /// Creates `GET` request.
     pub fn get(&self, path: &str) -> RequestBuilder {
         self.request(Method::GET, path)
     }
 
-    /// Creates the POST request
+    /// Creates `POST` request.
     pub fn post(&self, path: &str) -> RequestBuilder {
         self.request(Method::POST, path)
     }
 
-    /// Creates the DELETE request
+    /// Creates `DELETE` request.
     pub fn delete(&self, path: &str) -> RequestBuilder {
         self.request(Method::DELETE, path)
     }
 
-    /// Creates the PUT request
+    /// Creates `PUT` request.
     pub fn put(&self, path: &str) -> RequestBuilder {
         self.request(Method::PUT, path)
     }
 
-    /// Creates the PATCH request
+    /// Creates `PATCH` request.
     pub fn patch(&self, path: &str) -> RequestBuilder {
         self.request(Method::PATCH, path)
     }
 
-    /// Creates the HEAD request
+    /// Creates `HEAD` request.
     pub fn head(&self, path: &str) -> RequestBuilder {
         self.request(Method::HEAD, path)
     }
 
-    /// Creates the OPTIONS request
+    /// Creates `OPTIONS` request.
     pub fn options(&self, path: &str) -> RequestBuilder {
         self.request(Method::OPTIONS, path)
     }
 
-    /// Helper method to prepare URLs
+    /// Helper method to prepare URLs.
     fn format_url(&self, path: &str) -> String {
         match &self.base_url {
             // for IPC (http://localhost + /your/path)

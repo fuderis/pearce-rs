@@ -3,7 +3,7 @@ use crate::prelude::*;
 
 use axum::http::StatusCode;
 
-/// The HTTP status code
+/// HTTP status code.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Status(pub u16);

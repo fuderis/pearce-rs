@@ -1,14 +1,17 @@
 #![allow(unused_imports)]
+pub use crate::error::Error;
+
 pub use std::result::Result as StdResult;
 pub type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type Result<T> = StdResult<T, DynError>;
 
-pub(crate) use atoman::*;
-pub(crate) use macron::*;
+pub use atoman::{Receiver, Sender, SharedMap, State};
+pub use macron::*;
 
-pub(crate) use std::{
+pub use std::{
     path::{Path, PathBuf},
     sync::Arc,
+    time::Duration,
 };
 
-pub(crate) use serde::{Deserialize, Serialize};
+pub use serde::{Deserialize, Serialize};

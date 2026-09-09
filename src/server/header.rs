@@ -5,8 +5,9 @@ use axum::{
     extract::FromRequestParts,
     http::{HeaderMap, request::Parts},
 };
+use std::convert::Infallible;
 
-/// The HTTP header name
+/// HTTP header.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Header(pub &'static str);
@@ -421,7 +422,7 @@ impl From<Header> for &'static str {
     }
 }
 
-/// The HTTP header body
+/// HTTP header body.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HeaderBody<'a>(pub &'a str);
 
@@ -443,9 +444,20 @@ impl<'a> From<HeaderBody<'a>> for &'a str {
     }
 }
 
-use std::convert::Infallible;
-
+/// HTTP headers map.
 pub struct Headers(pub HeaderMap);
+
+impl Headers {
+    /// Returns header by name.
+    pub fn get(&self, name: impl Into<Header>) -> Option<&str> {
+        self.0.get(name.into().0).and_then(|v| v.to_str().ok())
+    }
+
+    /// Checks header for exists.
+    pub fn contains(&self, name: impl Into<Header>) -> bool {
+        self.0.contains_key(name.into().0)
+    }
+}
 
 impl<S> FromRequestParts<S> for Headers
 where
@@ -455,17 +467,5 @@ where
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> StdResult<Self, Self::Rejection> {
         Ok(Headers(parts.headers.clone()))
-    }
-}
-
-impl Headers {
-    /// Returns header by name
-    pub fn get(&self, name: impl Into<Header>) -> Option<&str> {
-        self.0.get(name.into().0).and_then(|v| v.to_str().ok())
-    }
-
-    /// Checks header for exists
-    pub fn contains(&self, name: impl Into<Header>) -> bool {
-        self.0.contains_key(name.into().0)
     }
 }

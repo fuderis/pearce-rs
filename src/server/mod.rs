@@ -1,3 +1,5 @@
+//! HTTP server module.
+
 pub mod addr;
 pub use addr::Addr;
 
@@ -13,9 +15,13 @@ pub use response::Response;
 pub mod listener;
 pub use listener::IpcListener;
 
+pub mod callback;
+pub use callback::wait_callback;
+
 pub use axum::{
     self,
     extract::{Json, Path as Paths, Query},
+    routing,
 };
 pub use urlencoding::{
     self, decode as url_decode, decode_binary as url_decode_binary, encode as url_encode,
@@ -24,55 +30,108 @@ pub use urlencoding::{
 pub use validator::{self, Validate, ValidationError};
 
 use crate::prelude::*;
-use axum::{
-    Router,
-    handler::Handler,
-    routing::{get, post},
-};
+use axum::{Router, handler::Handler};
 use tokio::net::TcpListener;
 
-/// The Axum server wrapper
+/// HTTP server (based on [axum]).
 pub struct Server {
     router: Router,
+    enable_callback: bool,
 }
 
 impl Server {
-    /// Creates a new Axum server
+    /// Creates new server.
     pub fn new() -> Self {
         Self {
             router: Router::new(),
+            enable_callback: false,
         }
     }
 
-    /// Add any route (universal)
+    /// Add any route (universal).
     pub fn route(mut self, path: &str, method_router: axum::routing::MethodRouter) -> Self {
         self.router = self.router.route(path, method_router);
         self
     }
 
-    /// Add the POST-page handler
-    pub fn post<H, T>(mut self, path: &str, handler: H) -> Self
+    /// Adds `POST` endpoint handler.
+    pub fn post<H, T>(self, path: &str, handler: H) -> Self
     where
         H: Handler<T, ()>,
         T: 'static,
     {
-        self.router = self.router.route(path, post(handler));
-        self
+        self.route(path, routing::post(handler))
     }
 
-    /// Add the GET-page handler
-    pub fn get<H, T>(mut self, path: &str, handler: H) -> Self
+    /// Adds `GET` endpoint handler.
+    pub fn get<H, T>(self, path: &str, handler: H) -> Self
     where
         H: Handler<T, ()>,
         T: 'static,
     {
-        self.router = self.router.route(path, get(handler));
+        self.route(path, routing::get(handler))
+    }
+
+    /// Adds `DELETE` endpoint handler.
+    pub fn delete<H, T>(self, path: &str, handler: H) -> Self
+    where
+        H: Handler<T, ()>,
+        T: 'static,
+    {
+        self.route(path, routing::delete(handler))
+    }
+
+    /// Adds `PUT` endpoint handler.
+    pub fn put<H, T>(self, path: &str, handler: H) -> Self
+    where
+        H: Handler<T, ()>,
+        T: 'static,
+    {
+        self.route(path, routing::put(handler))
+    }
+
+    /// Adds `PATCH` endpoint handler.
+    pub fn patch<H, T>(self, path: &str, handler: H) -> Self
+    where
+        H: Handler<T, ()>,
+        T: 'static,
+    {
+        self.route(path, routing::patch(handler))
+    }
+
+    /// Adds `HEAD` endpoint handler.
+    pub fn head<H, T>(self, path: &str, handler: H) -> Self
+    where
+        H: Handler<T, ()>,
+        T: 'static,
+    {
+        self.route(path, routing::head(handler))
+    }
+
+    /// Adds `OPTIONS` endpoint handler.
+    pub fn options<H, T>(self, path: &str, handler: H) -> Self
+    where
+        H: Handler<T, ()>,
+        T: 'static,
+    {
+        self.route(path, routing::options(handler))
+    }
+
+    /// Includes hidden POST endpoint `/callback/:id`.
+    pub fn callback(mut self, enable: bool) -> Self {
+        self.enable_callback = enable;
         self
     }
 
-    /// Launching the server at a specific address (TCP or UDS)
+    /// Launching server at specific address (TCP/IPC).
     #[async_recursion]
-    pub async fn run(self, addr: impl Into<Addr> + Send + 'static) -> Result<()> {
+    pub async fn run(mut self, addr: impl Into<Addr> + Send + 'static) -> Result<()> {
+        if self.enable_callback {
+            self.router = self
+                .router
+                .route("/callback/:id", routing::post(callback::handle_callback));
+        }
+
         match addr.into() {
             // TCP protocol
             Addr::Ip(socket_addr) => {
@@ -82,15 +141,7 @@ impl Server {
 
             // IPC protocol (by socket name)
             Addr::Name(name) => {
-                let path = if cfg!(unix) {
-                    std::path::PathBuf::from(format!("/tmp/{name}.sock"))
-                } else {
-                    let base_dir =
-                        std::env::var("LOCALAPPDATA").unwrap_or_else(|_| ".".to_string());
-                    std::path::PathBuf::from(format!("{}\\..\\Local\\Temp\\{name}.sock", base_dir))
-                };
-
-                self.run(Addr::Path(path)).await?;
+                self.run(Addr::Path(path!("$temp/{name}.sock"))).await?;
             }
 
             // IPC protocol (by socket path)

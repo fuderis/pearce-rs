@@ -3,16 +3,16 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// The server endpoint wrapper
+/// Server address.
 #[derive(Debug)]
 pub enum Addr {
-    // TCP protocol (standart HTTP endpoint)
+    // TCP protocol (standart HTTP endpoint).
     Ip(SocketAddr),
 
-    // IPC protocol (UDS for Unix, NP for Windows)
+    // IPC protocol (UDS for Unix, NP for Windows).
     Name(String),
 
-    // IPC protocol (UDS for Unix, AF_UNIX for Windows)
+    // IPC protocol (UDS for Unix, AF_UNIX for Windows).
     Path(PathBuf),
 }
 

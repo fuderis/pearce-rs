@@ -1,3 +1,5 @@
+//! SSE stream module.
+
 use crate::prelude::*;
 
 pub use atoman::{Receiver, Sender};
@@ -7,7 +9,7 @@ pub use futures;
 use futures::{Stream, StreamExt};
 use serde::de::DeserializeOwned;
 
-/// Creates the SSE stream body (Server-Sent Events)
+/// Creates SSE stream body (Server-Sent Events).
 pub fn stream_body<H, Fut>(handler: H) -> impl Stream<Item = Result<Bytes>>
 where
     H: FnOnce(Sender<Bytes>) -> Fut + Send + 'static,

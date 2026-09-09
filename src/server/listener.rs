@@ -1,13 +1,13 @@
 use crate::prelude::*;
 use std::path::Path;
 
-/// The IPC listener
+/// IPC listener.
 pub struct IpcListener {
     pub inner: tokio::net::UnixListener,
 }
 
 impl IpcListener {
-    /// Binds the IPC listener (Unix Domain Sockets)
+    /// Binds IPC listener (Unix Domain Sockets).
     pub fn bind(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
 
@@ -31,8 +31,8 @@ impl IpcListener {
         Ok(Self { inner })
     }
 
-    /// Waits for the next incoming IPC connection
-    /// (returns a `UnixStream` representing the connected client)
+    /// Waits for next incoming IPC connection.
+    /// (returns `UnixStream` representing the connected client)
     pub async fn accept(&mut self) -> Result<tokio::net::UnixStream> {
         let (stream, _) = self.inner.accept().await?;
         Ok(stream)

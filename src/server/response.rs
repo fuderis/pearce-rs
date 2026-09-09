@@ -7,7 +7,7 @@ use axum::{
     response::{IntoResponse, Response as AxumResponse},
 };
 
-/// The HTTP response builder
+/// HTTP response builder.
 pub struct Response {
     status: StatusCode,
     headers: HeaderMap,
@@ -16,7 +16,7 @@ pub struct Response {
 }
 
 impl Response {
-    /// Creates a new response builder
+    /// Creates new response builder.
     pub fn new(status: impl Into<Status>) -> Self {
         Self {
             status: status.into().try_into().expect("Invalid status code"),
@@ -28,7 +28,7 @@ impl Response {
 
     // --- HTTP STATUS ---
 
-    /// Changes the status code (for example, 201, 404, 500)
+    /// Changes status code (200, 404, 500, etc.).
     pub fn status(mut self, status: impl Into<Status>) -> Self {
         self.status = status.into().try_into().expect("Invalid status code");
         self
@@ -94,7 +94,7 @@ impl Response {
 
     // --- HTTP HEADER ---
 
-    /// Sets the header
+    /// Sets new header.
     pub fn header<'a>(
         mut self,
         header: impl Into<Header>,
@@ -115,33 +115,33 @@ impl Response {
         self
     }
 
-    /// Sets the HTTPS-only connect header
+    /// Sets the HTTPS-only connect header.
     pub fn https_only(self, seconds: u64) -> Self {
         let val = format!("max-age={}; includeSubDomains", seconds);
         self.header(Header::StrictTransportSecurity, val.as_str())
     }
 
-    /// Sets the iframe options header
+    /// Sets the iframe options header.
     pub fn no_iframe(self) -> Self {
         self.header(Header::XFrameOptions, "DENY")
     }
 
-    /// Sets the content sniff options header
+    /// Sets the content sniff options header.
     pub fn no_sniff(self) -> Self {
         self.header(Header::XContentTypeOptions, "nosniff")
     }
 
-    /// Sets the cache control options header
+    /// Sets the cache control options header.
     pub fn cache_control<'a>(self, value: impl Into<HeaderBody<'a>>) -> Self {
         self.header(Header::CacheControl, value)
     }
 
-    /// Sets the cache control options header
+    /// Sets the cache control options header.
     pub fn no_cache(self) -> Self {
         self.cache_control("no-store, no-cache, must-revalidate")
     }
 
-    /// Sets the content-type header
+    /// Sets the content-type header.
     pub fn content_type<'a>(self, value: impl Into<HeaderBody<'a>>) -> Self {
         self.header(Header::ContentType, value)
     }
@@ -183,7 +183,7 @@ impl Response {
         )
     }
 
-    /// Sets the file attachment header
+    /// Sets the file attachment header.
     pub fn attachment(self, filename: &str) -> Self {
         let value = if filename.is_ascii() {
             filename.to_string()
@@ -197,7 +197,7 @@ impl Response {
         )
     }
 
-    /// Sets the redirect location header
+    /// Sets the redirect location header.
     pub fn location(self, uri: &str) -> Self {
         let value = if uri.is_ascii() {
             uri.to_string()
@@ -210,25 +210,25 @@ impl Response {
 
     // --- HTTP BODY ---
 
-    /// Sets the body (string, bytes, or stream)
+    /// Sets body (string, bytes, or stream).
     pub fn body(mut self, body: impl Into<Body>) -> Self {
         self.body = body.into();
         self
     }
 
-    /// Sets the plain text body (forced UTF-8)
+    /// Sets plain text body (forced UTF-8).
     pub fn text(self, text: impl Into<String>) -> Self {
         self.content_type_text().body(text.into())
     }
 
-    /// Sets the HTML content body
+    /// Sets HTML content body.
     pub fn html(mut self, html: impl Into<String>) -> Self {
         self = self.content_type_html();
         self.body = Body::from(html.into());
         self
     }
 
-    /// Sets the JSON content body
+    /// Sets JSON content body.
     pub fn json<T: serde::Serialize>(mut self, v: &T) -> Self {
         match serde_json::to_vec(v) {
             Ok(bytes) => {
@@ -245,7 +245,7 @@ impl Response {
         }
     }
 
-    /// Sets the SSE stream body from handler
+    /// Sets SSE stream body from handler.
     #[cfg(feature = "stream")]
     pub fn stream<H, Fut>(mut self, handler: H) -> Self
     where

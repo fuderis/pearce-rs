@@ -3,6 +3,19 @@
 version = 4
 
 [[package]]
+name = "ahash"
+version = "0.8.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75"
+dependencies = [
+ "cfg-if",
+ "getrandom 0.3.4",
+ "once_cell",
+ "version_check",
+ "zerocopy",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -44,12 +57,13 @@ dependencies = [
 
 [[package]]
 name = "atoman"
-version = "0.4.5"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50fffe1d365f27f4146ed3b25df173c9e3d0465ae19c9fa1407c4497e5118a85"
+checksum = "028fdba0a0742c563ad5c54e89c3e0e42786cfec5204874ecdc16f0a7ce4dab9"
 dependencies = [
+ "ahash",
  "arc-swap",
- "macron 0.1.18",
+ "macron",
  "once_cell",
  "serde",
  "serde_json",
@@ -856,44 +870,19 @@ checksum = "112b39cec0b298b6c1999fee3e31427f74f676e4cb9879ed1a121b43661a4154"
 
 [[package]]
 name = "macron"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03d86f99fc455fb28c1d1195e9fee1c4268ad426d3b3adb278e28fad5dba1919"
-dependencies = [
- "macron-impl-display 0.1.1",
- "macron-impl-error",
- "macron-impl-from 0.1.1",
- "macron-impl-into 0.1.1",
- "macron-regex",
- "macron-str",
-]
-
-[[package]]
-name = "macron"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c3eb2143ce46d1672dc2dbcd79721552d59b0552b40673920cf837a68445834"
 dependencies = [
  "async-recursion",
  "async-trait",
- "macron-impl-display 0.3.0",
+ "macron-impl-display",
  "macron-impl-error",
- "macron-impl-from 0.2.0",
- "macron-impl-into 0.2.0",
+ "macron-impl-from",
+ "macron-impl-into",
  "macron-path",
  "macron-regex",
  "macron-str",
-]
-
-[[package]]
-name = "macron-impl-display"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9ffb18d54a49dde4005773d8f2e2a709d2caa5561e8c8d430da4ec93a1c027f"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
 ]
 
 [[package]]
@@ -921,31 +910,9 @@ dependencies = [
 
 [[package]]
 name = "macron-impl-from"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a39985f0e374141b913618f753ca649da45dda47621cc4131959d721dc751635"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
-]
-
-[[package]]
-name = "macron-impl-from"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8aa02091cd51180c60c95f1d21988f66b4ef442bf076e9afd7468993e8202747"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
-]
-
-[[package]]
-name = "macron-impl-into"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b10b6f502ff432df11bccd9cabda7febdc3f52c901a64edb4c27df3f2f4b2ff"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1057,7 +1024,7 @@ dependencies = [
 
 [[package]]
 name = "pearce"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "atoman",
  "axum",
@@ -1065,7 +1032,7 @@ dependencies = [
  "futures",
  "hyper",
  "hyper-util",
- "macron 0.5.0",
+ "macron",
  "reqwest",
  "serde",
  "serde_json",
@@ -1920,6 +1887,12 @@ dependencies = [
  "quote",
  "syn 2.0.117",
 ]
+
+[[package]]
+name = "version_check"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "walkdir"
