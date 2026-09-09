@@ -1,6 +1,6 @@
 //! HTTP client module.
 
-use crate::prelude::*;
+use crate::{prelude::*, stream};
 
 use reqwest::{Client as ReqClient, Method, RequestBuilder};
 
@@ -115,6 +115,6 @@ impl StreamExt for reqwest::RequestBuilder {
         let response = self.send().await?;
         let stream = response.bytes_stream().map(|v| v.map_err(Into::into));
 
-        Ok(crate::stream_reader(stream))
+        Ok(stream::stream_reader(stream))
     }
 }

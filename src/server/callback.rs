@@ -1,4 +1,7 @@
-use crate::{Json, Paths, Response, prelude::*};
+use crate::{
+    prelude::*,
+    server::{Json, Paths, Response},
+};
 
 pub static CALLBACKS: SharedMap<String, Sender<serde_json::Value>> = SharedMap::new();
 
