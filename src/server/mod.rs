@@ -16,7 +16,7 @@ pub mod listener;
 pub use listener::IpcListener;
 
 pub mod callback;
-pub use callback::wait_callback;
+pub use callback::{Callback, CallbackReceiver};
 
 pub use axum::{
     self,
@@ -118,7 +118,7 @@ impl Server {
         self.route(path, routing::options(handler))
     }
 
-    /// Includes hidden POST endpoint `/callback/:id`.
+    /// Includes hidden POST endpoint `/callback/{id}`.
     pub fn callback(mut self, enable: bool) -> Self {
         self.enable_callback = enable;
         self
@@ -128,9 +128,10 @@ impl Server {
     #[async_recursion]
     pub async fn run(mut self, addr: impl Into<Addr> + Send + 'static) -> Result<()> {
         if self.enable_callback {
+            self.enable_callback = false;
             self.router = self
                 .router
-                .route("/callback/:id", routing::post(callback::handle_callback));
+                .route("/callback/{id}", routing::post(callback::handle_callback));
         }
 
         match addr.into() {

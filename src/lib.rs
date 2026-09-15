@@ -5,7 +5,10 @@ pub mod prelude;
 #[cfg(feature = "server")]
 pub mod server;
 #[cfg(feature = "server")]
-pub use server::{Header, HeaderBody, Headers, Json, Paths, Query, Response, Server, Status, url};
+pub use server::{
+    Addr, Callback, CallbackReceiver, Header, HeaderBody, Headers, Json, Paths, Query, Response,
+    Server, Status, url,
+};
 
 #[cfg(feature = "client")]
 pub mod client;

@@ -3,50 +3,87 @@ use crate::{
     server::{Json, Paths, Response},
 };
 
-pub static CALLBACKS: SharedMap<String, Sender<serde_json::Value>> = SharedMap::new();
+use tokio::time;
 
-/// Waits for callback with specific event `id`.
-pub async fn wait_callback<T>(id: impl Into<String>, timeout: Duration) -> Result<T>
-where
-    T: serde::de::DeserializeOwned,
-{
-    let id_str = id.into();
-    let (tx, rx) = tokio::sync::mpsc::channel(1);
-    let sender = Sender::Bounded(tx);
+pub static CALLBACKS: SharedMap<String, Callback> = SharedMap::new();
 
-    // register channel in the global state
-    CALLBACKS.insert(id_str.clone(), sender).await;
+/// Server callback sender.
+#[derive(Clone)]
+pub struct Callback {
+    tx: Sender<JsonValue>,
+}
 
-    // waiting for data from the client with a timeout
-    let mut receiver = Receiver::Bounded(rx);
-    let wait_res = tokio::time::timeout(timeout, receiver.recv()).await;
+impl Callback {
+    /// Registers callback with specific event `id`.
+    pub async fn register(id: impl Into<String>) -> CallbackReceiver {
+        let id = id.into();
 
-    // guaranteed memory clearing (even if a timeout occurs)
-    CALLBACKS.remove(&id_str).await;
+        // register in the global state
+        let (tx, rx) = atoman::bounded_channel(1);
+        CALLBACKS.insert(id.clone(), Self { tx }).await;
 
-    match wait_res {
-        Ok(Ok(Some(value))) => {
-            let parsed = serde_json::from_value(value)?;
-            Ok(parsed)
-        }
-        Ok(Ok(None)) => Err(Error::CallbackClosed.into()),
-        Ok(Err(err)) => Err(err),
-        Err(_) => Err(Error::CallbackTimeout.into()),
+        CallbackReceiver { id, rx }
+    }
+
+    /// Removes callback by ID.
+    pub async fn remove(id: impl Into<String>) -> Option<SharedItem<Callback>> {
+        CALLBACKS.remove(&id.into()).await
     }
 }
 
-/// Hidden `POST` handler `/callback/:id`.
+/// Hidden `POST` handler `/callback/{id}`.
 pub(crate) async fn handle_callback(
     Paths(id): Paths<String>,
-    Json(payload): Json<serde_json::Value>,
+    Json(payload): Json<JsonValue>,
 ) -> Response {
     // look for and immediately REMOVE the waiting channel
     if let Some(item) = CALLBACKS.remove(&id).await {
         let guard = item.read().await;
         // send payload to the waiting stream
-        let _ = guard.send_async(payload).await;
+        let _ = guard.tx.send_async(payload).await;
     }
 
     // instantly return 200 OK to the client
     Response::ok()
+}
+
+/// Server callback receiver (removes callback on drop).
+pub struct CallbackReceiver {
+    id: String,
+    rx: Receiver<JsonValue>,
+}
+
+impl CallbackReceiver {
+    /// Receives callback output (returns None if timeout).
+    pub async fn recv<T>(&mut self, timeout: Duration) -> Result<Option<T>>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        // waiting for data from the client with a timeout
+        let wait_res = time::timeout(timeout, self.rx.recv()).await;
+
+        // guaranteed memory clearing (even if a timeout occurs)
+        CALLBACKS.remove(&self.id).await;
+
+        match wait_res {
+            Ok(Ok(opt)) => {
+                if let Some(value) = opt {
+                    Ok(Some(json::from_value(value)?))
+                } else {
+                    Ok(None)
+                }
+            }
+            Ok(Err(e)) => Err(e),
+            Err(_) => Ok(None),
+        }
+    }
+}
+
+impl Drop for CallbackReceiver {
+    fn drop(&mut self) {
+        let id = self.id.clone();
+        tokio::spawn(async move {
+            CALLBACKS.remove(&id).await;
+        });
+    }
 }

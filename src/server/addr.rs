@@ -1,10 +1,11 @@
+use serde::{Deserialize, Serialize};
 use std::{
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
     path::{Path, PathBuf},
 };
 
 /// Server address.
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Addr {
     // TCP protocol (standart HTTP endpoint).
     Ip(SocketAddr),
