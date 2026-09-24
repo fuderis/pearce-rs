@@ -17,7 +17,7 @@ impl Client {
     /// Creates new `TCP` client (clone from state).
     pub fn tcp() -> Self {
         Client {
-            inner: TCP_CLIENT.dirty_get_cloned(),
+            inner: TCP_CLIENT.get_cloned(),
             base_url: None,
         }
     }

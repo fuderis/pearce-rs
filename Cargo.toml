@@ -11,8 +11,8 @@ readme = "README.md"
 edition = "2024"
 
 [dependencies]
-macron = { version = "0.5.0", features = ["derive", "string", "path", "async"] }
-atoman = { version = "0.8.1", features = ["channel"] }
+macron = { version = "0.5.1", features = ["derive", "string", "path", "async"] }
+atoman = { version = "0.11.6", features = ["channel"] }
 tokio = { version = "1.52.0", features = ["full"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149" }
