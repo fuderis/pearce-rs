@@ -18,4 +18,4 @@ pub use client::{Client, StreamExt};
 #[cfg(feature = "stream")]
 pub mod stream;
 #[cfg(feature = "stream")]
-pub use stream::{Bytes, BytesMut, Receiver, Sender};
+pub use stream::{Bytes, BytesMut, Receiver, Sender, stream_body, stream_reader};
