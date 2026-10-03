@@ -3,7 +3,7 @@ name = "pearce"
 description = "An extension layer for Axum that enables rapid development of network services and agent-based infrastructure. Automates common route, handler, and server environment configuration, reducing the amount of boilerplate code."
 keywords = ["web", "framework", "axum", "routing"]
 categories = ["development-tools", "rust-patterns"]
-version = "0.5.4"
+version = "0.5.5"
 license = "MIT"
 authors = ["Bulat Sh. <synapdrake@ya.ru>"]
 repository = "https://github.com/fuderis/pearce-rs"
@@ -23,7 +23,7 @@ validator = { version = "0.20.0", features = ["derive"], optional = true }
 tower = { version = "0.5.3", features = ["util"], optional = true }
 hyper-util = { version = "0.1.20", features = ["client", "client-legacy", "server-auto"], optional = true }
 
-reqwest = { version = "0.13", default-features = false, features = ["stream", "json"], optional = true }
+reqwest = { version = "0.13", default-features = false, features = ["stream", "json", "socks"], optional = true }
 hyper = { version = "1.10.1", optional = true }
 
 bytes = { version = "1.12.0", optional = true }
