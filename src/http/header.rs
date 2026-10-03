@@ -1,10 +1,12 @@
 #![allow(non_upper_case_globals)]
 use crate::prelude::*;
 
+#[cfg(feature = "server")]
 use axum::{
     extract::FromRequestParts,
     http::{HeaderMap, request::Parts},
 };
+#[cfg(feature = "server")]
 use std::convert::Infallible;
 
 /// HTTP header.
@@ -15,7 +17,7 @@ pub struct Header(pub &'static str);
 impl Header {
     // --- Authentication ---
     /// WWW-Authenticate - Defines the authentication method that should be used to access a resource.
-    pub const WWWAuthenticate: Self = Header("WWW-Authenticate");
+    pub const WWWAuthenticate: Header = Header("WWW-Authenticate");
     /// Authorization - Contains the credentials to authenticate a user-agent with a server.
     pub const Authorization: Header = Header("Authorization");
     /// Proxy-Authenticate - Defines the authentication method that should be used to access a resource behind a proxy server.
@@ -445,8 +447,10 @@ impl<'a> From<HeaderBody<'a>> for &'a str {
 }
 
 /// HTTP headers map.
+#[cfg(feature = "server")]
 pub struct Headers(pub HeaderMap);
 
+#[cfg(feature = "server")]
 impl Headers {
     /// Returns header by name.
     pub fn get(&self, name: impl Into<Header>) -> Option<&str> {
@@ -459,6 +463,7 @@ impl Headers {
     }
 }
 
+#[cfg(feature = "server")]
 impl<S> FromRequestParts<S> for Headers
 where
     S: Send + Sync,
@@ -467,5 +472,27 @@ where
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> StdResult<Self, Self::Rejection> {
         Ok(Headers(parts.headers.clone()))
+    }
+}
+
+pub trait IntoHeader {
+    fn header_str(&self) -> &str;
+}
+
+impl IntoHeader for Header {
+    fn header_str(&self) -> &str {
+        self.0
+    }
+}
+
+impl IntoHeader for &str {
+    fn header_str(&self) -> &str {
+        self
+    }
+}
+
+impl IntoHeader for String {
+    fn header_str(&self) -> &str {
+        self.as_str()
     }
 }

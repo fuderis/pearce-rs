@@ -1,14 +1,5 @@
 //! HTTP server module.
 
-pub mod addr;
-pub use addr::Addr;
-
-pub mod status;
-pub use status::Status;
-
-pub mod header;
-pub use header::{Header, HeaderBody, Headers};
-
 pub mod response;
 pub use response::Response;
 
@@ -30,7 +21,8 @@ pub mod url {
 
 pub use validator::{self, Validate, ValidationError};
 
-use crate::prelude::*;
+use crate::{Socket, http::SocketGuard, prelude::*};
+
 use axum::{Router, handler::Handler};
 use tokio::net::TcpListener;
 
@@ -126,7 +118,7 @@ impl Server {
 
     /// Launching server at specific address (TCP/IPC).
     #[async_recursion]
-    pub async fn run(mut self, addr: impl Into<Addr> + Send + 'static) -> Result<()> {
+    pub async fn run(mut self, addr: impl Into<Socket> + Send + 'static) -> Result<()> {
         if self.enable_callback {
             self.enable_callback = false;
             self.router = self
@@ -136,18 +128,18 @@ impl Server {
 
         match addr.into() {
             // TCP protocol
-            Addr::Ip(socket_addr) => {
+            Socket::Ip(socket_addr) => {
                 let listener = TcpListener::bind(socket_addr).await?;
                 axum::serve(listener, self.router).await?;
             }
 
             // IPC protocol (by socket name)
-            Addr::Name(name) => {
-                self.run(Addr::Path(path!("$temp/{name}.sock"))).await?;
+            Socket::Name(name) => {
+                self.run(Socket::Path(path!("$temp/{name}.sock"))).await?;
             }
 
             // IPC protocol (by socket path)
-            Addr::Path(path) => {
+            Socket::Path(path) => {
                 let listener = IpcListener::bind(&path)?;
 
                 let _socket_guard = SocketGuard { path };
@@ -158,17 +150,5 @@ impl Server {
         }
 
         Ok(())
-    }
-}
-
-struct SocketGuard {
-    path: std::path::PathBuf,
-}
-
-impl Drop for SocketGuard {
-    fn drop(&mut self) {
-        if self.path.exists() {
-            let _ = std::fs::remove_file(&self.path);
-        }
     }
 }

@@ -1,7 +1,10 @@
 #![allow(non_upper_case_globals)]
 use crate::prelude::*;
 
+#[cfg(feature = "server")]
 use axum::http::StatusCode;
+#[cfg(all(feature = "client", not(feature = "server")))]
+use reqwest::StatusCode;
 
 /// HTTP status code.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -167,10 +170,18 @@ impl From<Status> for u16 {
     }
 }
 
+#[cfg(any(feature = "server", feature = "client"))]
 impl TryInto<StatusCode> for Status {
     type Error = DynError;
 
     fn try_into(self) -> Result<StatusCode> {
         Ok(StatusCode::from_u16(self.0)?)
+    }
+}
+
+#[cfg(any(feature = "server", feature = "server"))]
+impl From<StatusCode> for Status {
+    fn from(status: StatusCode) -> Self {
+        Status(status.as_u16())
     }
 }

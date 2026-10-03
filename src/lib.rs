@@ -15,20 +15,24 @@ compile_error!("Features 'rustls' and 'native-tls' cannot be enabled at the same
 pub mod error;
 pub mod prelude;
 
+pub mod http;
+#[cfg(feature = "server")]
+pub use http::Headers;
+pub use http::{Header, HeaderBody, IntoHeader, Method, Socket, Status};
+
 #[cfg(feature = "server")]
 pub mod server;
 #[cfg(feature = "server")]
-pub use server::{
-    Addr, Callback, CallbackReceiver, Header, HeaderBody, Headers, Json, Paths, Query, Response,
-    Server, Status, url,
-};
+pub use server::{Callback, CallbackReceiver, Json, Paths, Query, Response, Server, axum, url};
 
 #[cfg(feature = "client")]
 pub mod client;
 #[cfg(feature = "client")]
-pub use client::{Client, StreamExt};
+pub use client::{Client, Proxy, Request, reqwest};
 
 #[cfg(feature = "stream")]
 pub mod stream;
 #[cfg(feature = "stream")]
-pub use stream::{Bytes, BytesMut, Receiver, Sender, stream_body, stream_reader};
+pub use stream::{
+    Bytes, BytesMut, Receiver, Sender, Stream, StreamExt, stream_body, stream_reader,
+};

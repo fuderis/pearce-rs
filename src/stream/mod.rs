@@ -6,7 +6,7 @@ pub use atoman::{Receiver, Sender};
 pub use bytes::{self, Bytes, BytesMut};
 pub use futures;
 
-use futures::{Stream, StreamExt};
+pub use futures::{Stream, StreamExt};
 use serde::de::DeserializeOwned;
 
 /// Creates SSE stream body (Server-Sent Events).

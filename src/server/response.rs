@@ -1,5 +1,4 @@
-use super::{Header, HeaderBody, Status};
-use crate::{prelude::*, stream};
+use crate::{Header, HeaderBody, Status, prelude::*};
 
 use axum::{
     body::Body,
@@ -252,7 +251,7 @@ impl Response {
         H: FnOnce(Sender<bytes::Bytes>) -> Fut + Send + 'static,
         Fut: Future<Output = ()> + Send + 'static,
     {
-        let body = stream::stream_body(handler);
+        let body = crate::stream::stream_body(handler);
 
         self = self.content_type_stream();
         self.body = Body::from_stream(body);
