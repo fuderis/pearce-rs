@@ -107,7 +107,7 @@ pub struct Request {
     headers: reqwest::header::HeaderMap,
     timeout: Option<Duration>,
     query: Vec<(String, String)>,
-    body: Option<reqwest::Body>,
+    body: Option<StdResult<reqwest::Body, serde_json::Error>>,
 
     proxy: Option<Proxy>,
     connect_timeout: Option<Duration>,
@@ -174,16 +174,16 @@ impl Request {
     }
 
     /// Serializes into JSON body and adds Content-Type header.
-    pub fn json<T: Serialize>(mut self, json: &T) -> Result<Self> {
-        let bytes = serde_json::to_vec(json)?;
+    pub fn json<T: Serialize>(mut self, json: &T) -> Self {
         self = self.header(Header::ContentType, "application/json");
-        self.body = Some(reqwest::Body::from(bytes));
-        Ok(self)
+        let body_res = serde_json::to_vec(json).map(reqwest::Body::from);
+        self.body = Some(body_res);
+        self
     }
 
     /// Sets raw request body.
     pub fn body(mut self, body: impl Into<reqwest::Body>) -> Self {
-        self.body = Some(body.into());
+        self.body = Some(Ok(body.into()));
         self
     }
 
@@ -225,8 +225,8 @@ impl Request {
             req = req.headers(self.headers);
         }
 
-        if let Some(b) = self.body {
-            req = req.body(b);
+        if let Some(b_res) = self.body {
+            req = req.body(b_res?);
         }
 
         let resp = req.send().await?;
