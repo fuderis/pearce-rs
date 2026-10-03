@@ -2,7 +2,8 @@
 
 use crate::{prelude::*, stream};
 
-use reqwest::{Client as ReqClient, Method, RequestBuilder};
+use reqwest::Client as ReqClient;
+pub use reqwest::{self, Method, RequestBuilder, Response, StatusCode, header};
 
 static TCP_CLIENT: State<ReqClient> = State::new(|| ReqClient::new());
 
