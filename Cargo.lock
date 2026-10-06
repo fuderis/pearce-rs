@@ -57,9 +57,9 @@ dependencies = [
 
 [[package]]
 name = "atoman"
-version = "0.11.6"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6846bfbf8dcf8b748dfda9dbb79eb3a7ad59e974a7fc50af79988391fabfb82d"
+checksum = "6fdb1f0fe905e289d7d1843cfc8ded59a9c84be58cac8a95f13680daed45e433"
 dependencies = [
  "ahash",
  "arc-swap",
@@ -1112,7 +1112,7 @@ dependencies = [
 
 [[package]]
 name = "pearce"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "atoman",
  "axum",
@@ -1417,7 +1417,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1750,7 +1750,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
