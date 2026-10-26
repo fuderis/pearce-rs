@@ -4,14 +4,15 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// Server address.
+/// Server address / socket configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Socket {
-    // TCP protocol (standart HTTP endpoint).
+    /// TCP protocol (standard HTTP/IP endpoint).
     Ip(SocketAddr),
-    // IPC protocol (UDS for Unix, NP for Windows).
-    Name(String),
-    // IPC protocol (UDS for Unix, AF_UNIX for Windows).
+
+    /// Cross-platform IPC path:
+    /// - Unix: Unix Domain Socket (UDS) via filesystem path.
+    /// - Windows: Named Pipes (NP).
     Path(PathBuf),
 }
 
@@ -32,6 +33,7 @@ impl From<([u8; 16], u16)> for Socket {
         Self::Ip(value.into())
     }
 }
+
 impl From<u16> for Socket {
     fn from(value: u16) -> Self {
         Self::Ip(([127, 0, 0, 1], value).into())
@@ -63,14 +65,14 @@ impl From<IpAddr> for Socket {
 }
 
 impl From<&str> for Socket {
-    fn from(name: &str) -> Self {
-        Self::Name(name.into())
+    fn from(path: &str) -> Self {
+        Self::Path(path.into())
     }
 }
 
 impl From<String> for Socket {
-    fn from(name: String) -> Self {
-        Self::Name(name)
+    fn from(path: String) -> Self {
+        Self::Path(path.into())
     }
 }
 

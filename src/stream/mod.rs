@@ -15,9 +15,9 @@ where
     H: FnOnce(Sender<Bytes>) -> Fut + Send + 'static,
     Fut: Future<Output = ()> + Send + 'static,
 {
-    let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<Result<Bytes>>();
+    let (tx, rx) = atoman::sync::mpsc::unbounded_channel::<Result<Bytes>>();
 
-    tokio::spawn(async move {
+    atoman::spawn(async move {
         let sender = Sender::from(tx);
         handler(sender).await;
     });
@@ -49,7 +49,7 @@ where
 {
     let (tx, rx) = atoman::channel::<T>(None);
 
-    tokio::spawn(async move {
+    atoman::spawn(async move {
         let mut buffer = BytesMut::new();
 
         while let Some(res) = source.next().await {

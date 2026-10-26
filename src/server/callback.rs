@@ -3,7 +3,7 @@ use crate::{
     server::{Json, Paths, Response},
 };
 
-use tokio::time;
+use atoman::time;
 
 pub static CALLBACKS: SharedMap<String, Callback> = SharedMap::new();
 
@@ -82,7 +82,7 @@ impl CallbackReceiver {
 impl Drop for CallbackReceiver {
     fn drop(&mut self) {
         let id = self.id.clone();
-        tokio::spawn(async move {
+        atoman::spawn(async move {
             CALLBACKS.remove(&id).await;
         });
     }

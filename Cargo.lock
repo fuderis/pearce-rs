@@ -57,9 +57,9 @@ dependencies = [
 
 [[package]]
 name = "atoman"
-version = "0.12.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fdb1f0fe905e289d7d1843cfc8ded59a9c84be58cac8a95f13680daed45e433"
+checksum = "233e63e5f936426fa9d79ecce234cbf2dcf1ae9f13fec4f25b4961ce40ffc69a"
 dependencies = [
  "ahash",
  "arc-swap",
@@ -1112,7 +1112,7 @@ dependencies = [
 
 [[package]]
 name = "pearce"
-version = "0.6.2"
+version = "0.7.0"
 dependencies = [
  "atoman",
  "axum",
@@ -1124,7 +1124,6 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "tokio",
  "tower",
  "urlencoding",
  "validator",

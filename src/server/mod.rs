@@ -23,8 +23,8 @@ pub use validator::{self, Validate, ValidationError};
 
 use crate::{Socket, http::SocketGuard, prelude::*};
 
+use atoman::net::TcpListener;
 use axum::{Router, handler::Handler};
-use tokio::net::TcpListener;
 
 /// HTTP server (based on [axum]).
 pub struct Server {
@@ -131,11 +131,6 @@ impl Server {
             Socket::Ip(socket_addr) => {
                 let listener = TcpListener::bind(socket_addr).await?;
                 axum::serve(listener, self.router).await?;
-            }
-
-            // IPC protocol (by socket name)
-            Socket::Name(name) => {
-                self.run(Socket::Path(path!("$temp/{name}.sock"))).await?;
             }
 
             // IPC protocol (by socket path)
