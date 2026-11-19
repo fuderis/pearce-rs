@@ -1,6 +1,9 @@
 #![allow(non_upper_case_globals)]
 use crate::prelude::*;
 
+#[cfg(any(feature = "server", feature = "client"))]
+use super::HttpError;
+
 #[cfg(feature = "server")]
 use axum::http::StatusCode;
 #[cfg(all(feature = "client", not(feature = "server")))]
@@ -172,10 +175,10 @@ impl From<Status> for u16 {
 
 #[cfg(any(feature = "server", feature = "client"))]
 impl TryInto<StatusCode> for Status {
-    type Error = DynError;
+    type Error = Error;
 
-    fn try_into(self) -> Result<StatusCode> {
-        Ok(StatusCode::from_u16(self.0)?)
+    fn try_into(self) -> Result<StatusCode, Error> {
+        Ok(StatusCode::from_u16(self.0).map_err(|_| HttpError::InvalidStatusCode(self.0))?)
     }
 }
 

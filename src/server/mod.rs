@@ -1,5 +1,8 @@
 //! HTTP server module.
 
+pub mod error;
+pub use error::Error as ServerError;
+
 pub mod response;
 pub use response::Response;
 
@@ -118,7 +121,7 @@ impl Server {
 
     /// Launching server at specific address (TCP/IPC).
     #[async_recursion]
-    pub async fn run(mut self, addr: impl Into<Socket> + Send + 'static) -> Result<()> {
+    pub async fn run(mut self, addr: impl Into<Socket> + Send + 'static) -> Result<(), Error> {
         if self.enable_callback {
             self.enable_callback = false;
             self.router = self

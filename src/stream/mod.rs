@@ -10,12 +10,12 @@ pub use futures::{Stream, StreamExt};
 use serde::de::DeserializeOwned;
 
 /// Creates SSE stream body (Server-Sent Events).
-pub fn stream_body<H, Fut>(handler: H) -> impl Stream<Item = Result<Bytes>>
+pub fn stream_body<H, Fut>(handler: H) -> impl Stream<Item = Result<Bytes, DynError>>
 where
     H: FnOnce(Sender<Bytes>) -> Fut + Send + 'static,
     Fut: Future<Output = ()> + Send + 'static,
 {
-    let (tx, rx) = atoman::sync::mpsc::unbounded_channel::<Result<Bytes>>();
+    let (tx, rx) = atoman::sync::mpsc::unbounded_channel::<Result<Bytes, DynError>>();
 
     atoman::spawn(async move {
         let sender = Sender::from(tx);
@@ -42,7 +42,7 @@ where
 
 /// Reads the SSE stream (Server-Sent Events)
 pub fn stream_reader<T>(
-    mut source: impl Stream<Item = Result<Bytes>> + Send + Unpin + 'static,
+    mut source: impl Stream<Item = Result<Bytes, DynError>> + Send + Unpin + 'static,
 ) -> Receiver<T>
 where
     T: DeserializeOwned + Send + 'static,

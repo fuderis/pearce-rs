@@ -13,7 +13,7 @@ pub struct IpcListener {
 
 impl IpcListener {
     /// Binds IPC listener (`Unix Domain Sockets` on Unix, `Named Pipes` on Windows).
-    pub fn bind(path: impl AsRef<Path>) -> Result<Self> {
+    pub fn bind(path: impl AsRef<Path>) -> Result<Self, Error> {
         let path = path.as_ref();
 
         #[cfg(unix)]

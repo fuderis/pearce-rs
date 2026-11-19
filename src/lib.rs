@@ -5,15 +5,17 @@
     not(any(feature = "rustls", feature = "native-tls"))
 ))]
 compile_error!(
-    "Feature 'client' requires at least one TLS backend to be enabled. \
-    Please enable 'rustls' or 'native-tls'."
+    "Feature `client` requires at least one TLS backend to be enabled. \
+    Please enable `rustls` or `native-tls`."
 );
 
 #[cfg(all(feature = "rustls", feature = "native-tls"))]
-compile_error!("Features 'rustls' and 'native-tls' cannot be enabled at the same time.");
+compile_error!("Features `rustls` and `native-tls` cannot be enabled at the same time.");
+
+mod prelude;
 
 pub mod error;
-pub mod prelude;
+pub use error::Error;
 
 pub mod http;
 #[cfg(feature = "server")]

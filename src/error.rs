@@ -1,10 +1,16 @@
 use macron::{Display, Error, From};
 
-/// The error
 #[derive(Debug, Display, Error, From)]
 pub enum Error {
     Io(std::io::Error),
 
-    #[display(fmt = "Callback channel is closed.")]
-    CallbackClosed,
+    Json(Box<serde_json::Error>),
+
+    Http(crate::http::HttpError),
+
+    #[cfg(feature = "server")]
+    Server(crate::server::ServerError),
+
+    #[cfg(feature = "client")]
+    Client(crate::client::ClientError),
 }

@@ -1,5 +1,8 @@
 //! HTTP client module.
 
+pub mod error;
+pub use error::Error as ClientError;
+
 use crate::{Header, IntoHeader, Method, prelude::*};
 use std::time::Duration;
 
@@ -107,7 +110,7 @@ pub struct Request {
     headers: reqwest::header::HeaderMap,
     timeout: Option<Duration>,
     query: Vec<(String, String)>,
-    body: Option<StdResult<reqwest::Body, serde_json::Error>>,
+    body: Option<Result<reqwest::Body, serde_json::Error>>,
 
     proxy: Option<Proxy>,
     connect_timeout: Option<Duration>,
@@ -188,10 +191,11 @@ impl Request {
     }
 
     /// Sends request to endpoint.
-    pub async fn send(self) -> Result<Response> {
+    pub async fn send(self) -> Result<Response, Error> {
         let raw_url = self.client.format_url(&self.path);
 
-        let mut url = reqwest::Url::parse(&raw_url)?;
+        let mut url = reqwest::Url::parse(&raw_url)
+            .map_err(|_| ClientError::InvalidUrl(raw_url.to_owned()))?;
         if !self.query.is_empty() {
             url.query_pairs_mut().extend_pairs(&self.query);
         }
@@ -210,7 +214,7 @@ impl Request {
             if self.accept_invalid_certs {
                 builder = builder.danger_accept_invalid_certs(true);
             }
-            builder.build()?
+            builder.build().map_err(ClientError::from)?
         } else {
             self.client.inner.clone()
         };
@@ -226,15 +230,15 @@ impl Request {
         }
 
         if let Some(b_res) = self.body {
-            req = req.body(b_res?);
+            req = req.body(b_res.map_err(|e| Error::from(Box::new(e)))?);
         }
 
-        let resp = req.send().await?;
+        let resp = req.send().await.map_err(|e| ClientError::Reqwest(e))?;
         Ok(resp)
     }
 
     #[cfg(feature = "stream")]
-    pub async fn stream<T>(self) -> Result<Receiver<T>>
+    pub async fn stream<T>(self) -> Result<Receiver<T>, DynError>
     where
         T: DeserializeOwned + Send + 'static,
     {

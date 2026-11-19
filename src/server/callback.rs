@@ -55,7 +55,7 @@ pub struct CallbackReceiver {
 
 impl CallbackReceiver {
     /// Receives callback output (returns None if timeout).
-    pub async fn recv<T>(&mut self, timeout: Duration) -> Result<Option<T>>
+    pub async fn recv<T>(&mut self, timeout: Duration) -> Result<Option<T>, DynError>
     where
         T: serde::de::DeserializeOwned,
     {
