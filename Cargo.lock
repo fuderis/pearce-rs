@@ -57,14 +57,14 @@ dependencies = [
 
 [[package]]
 name = "atoman"
-version = "0.13.2"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "202ce6f1db9d52da6560ac7332fec9a76fa1ae8ea43a9aec53073129535ba999"
+checksum = "a8cc213666d2f90c5ed26861d55434f2baaf81e51dfb4d1c9a6f9749fc2c48c5"
 dependencies = [
  "ahash",
  "arc-swap",
  "atoman-macros",
- "macron",
+ "macron 0.6.1",
  "once_cell",
  "serde",
  "serde_json",
@@ -878,8 +878,24 @@ dependencies = [
  "async-trait",
  "macron-impl-display",
  "macron-impl-error",
- "macron-impl-from",
- "macron-impl-into",
+ "macron-impl-from 0.2.0",
+ "macron-impl-into 0.2.0",
+ "macron-regex",
+ "macron-str",
+]
+
+[[package]]
+name = "macron"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0dba62b950e879f7822ef8444c36393b58eae54324a0902a57c16ca7ec1cc44"
+dependencies = [
+ "async-recursion",
+ "async-trait",
+ "macron-impl-display",
+ "macron-impl-error",
+ "macron-impl-from 0.3.0",
+ "macron-impl-into 0.3.0",
  "macron-path",
  "macron-regex",
  "macron-str",
@@ -919,10 +935,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "macron-impl-from"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b48d26d1feeffa8ddfc70b8b3e7935f58e81ca46c1391d5e96f95a88d0f760d9"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
 name = "macron-impl-into"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a69eb2137392517dc5f4d2602a3e6a7ab87d129ecfebe2b24af91a20c57406d9"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "macron-impl-into"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da4d20bfe1270d1b55fd56e4ebee0f558e34f98697348b3157ca6fb2450b2f1f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1085,7 +1123,7 @@ dependencies = [
  "futures",
  "hyper",
  "hyper-util",
- "macron",
+ "macron 0.7.0",
  "reqwest",
  "serde",
  "serde_json",
