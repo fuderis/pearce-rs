@@ -13,4 +13,7 @@ pub enum Error {
 
     #[cfg(feature = "client")]
     Client(crate::client::ClientError),
+
+    #[cfg(feature = "stream")]
+    Stream(crate::stream::StreamError),
 }

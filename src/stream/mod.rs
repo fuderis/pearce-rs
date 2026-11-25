@@ -1,5 +1,8 @@
 //! Server-Sent Events stream module.
 
+pub mod error;
+pub use error::StreamError;
+
 use crate::prelude::*;
 
 pub use bytes::{self, Bytes, BytesMut};
@@ -9,19 +12,16 @@ pub use futures::{Stream, StreamExt};
 use serde::de::DeserializeOwned;
 use tokio::sync::mpsc;
 
-pub type SseSender<T = Bytes> = mpsc::Sender<Result<T, DynError>>;
-pub type SseReceiver<T> = mpsc::Receiver<Result<T, DynError>>;
-
 /// Creates SSE stream body (Server-Sent Events).
 pub fn stream_body<H, Fut>(
     handler: H,
     buffer_size: usize,
 ) -> impl Stream<Item = Result<Bytes, DynError>>
 where
-    H: FnOnce(mpsc::Sender<Result<Bytes, DynError>>) -> Fut + Send + 'static,
+    H: FnOnce(mpsc::Sender<Bytes>) -> Fut + Send + 'static,
     Fut: Future<Output = ()> + Send + 'static,
 {
-    let (tx, rx) = mpsc::channel::<Result<Bytes, DynError>>(buffer_size);
+    let (tx, rx) = mpsc::channel::<Bytes>(buffer_size);
 
     tokio::spawn(async move {
         handler(tx).await;
@@ -29,31 +29,27 @@ where
 
     // creating a stream that wraps each incoming chunk in the SSE format
     futures::stream::unfold(rx, |mut rx| async move {
-        match rx.recv().await {
-            Some(Ok(bytes)) => {
-                // formatting as SSE: "data: <payload>\n\n"
-                let mut sse_data = Vec::with_capacity(bytes.len() + 8);
-                sse_data.extend_from_slice(b"data: ");
-                sse_data.extend_from_slice(&bytes);
-                sse_data.extend_from_slice(b"\n\n");
+        rx.recv().await.map(|bytes| {
+            // formatting as SSE: "data: <payload>\n\n"
+            let mut sse_data = Vec::with_capacity(bytes.len() + 8);
+            sse_data.extend_from_slice(b"data: ");
+            sse_data.extend_from_slice(&bytes);
+            sse_data.extend_from_slice(b"\n\n");
 
-                Some((Ok(Bytes::from(sse_data)), rx))
-            }
-            Some(Err(e)) => Some((Err(e), rx)),
-            None => None,
-        }
+            (Ok(Bytes::from(sse_data)), rx)
+        })
     })
 }
 
 /// Reads SSE stream for StreamExt implementations (Server-Sent Events).
 pub fn stream_reader<T>(
-    mut source: impl Stream<Item = Result<Bytes, DynError>> + Send + Unpin + 'static,
+    mut source: impl Stream<Item = Result<Bytes, Error>> + Send + Unpin + 'static,
     buffer_capacity: usize,
-) -> mpsc::Receiver<Result<T, DynError>>
+) -> mpsc::Receiver<Result<T, Error>>
 where
     T: DeserializeOwned + Send + 'static,
 {
-    let (tx, rx) = mpsc::channel::<Result<T, DynError>>(buffer_capacity);
+    let (tx, rx) = mpsc::channel::<Result<T, Error>>(buffer_capacity);
 
     tokio::spawn(async move {
         let mut buffer = BytesMut::new();
@@ -71,38 +67,53 @@ where
                         let full_message = buffer.split_to(pos + 2).freeze();
 
                         // parsing from the byte slice (from_utf8 does not allocate)
-                        if let Ok(line) = std::str::from_utf8(&full_message) {
-                            let trimmed = line.trim();
+                        match std::str::from_utf8(&full_message) {
+                            Ok(line) => {
+                                let trimmed = line.trim();
 
-                            if trimmed.starts_with("data:") {
-                                let json_part = trimmed[5..].trim();
+                                if trimmed.starts_with("data:") {
+                                    let json_part = trimmed[5..].trim();
 
-                                if json_part.is_empty() {
-                                    continue;
+                                    if json_part.is_empty() {
+                                        continue;
+                                    }
+
+                                    if json_part == "[DONE]" {
+                                        return;
+                                    }
+
+                                    match serde_json::from_str::<T>(json_part) {
+                                        Ok(item) => {
+                                            if tx.send(Ok(item)).await.is_err() {
+                                                return;
+                                            }
+                                        }
+                                        Err(e) => {
+                                            if tx
+                                                .send(Err(StreamError::Json(Box::new(e)).into()))
+                                                .await
+                                                .is_err()
+                                            {
+                                                return;
+                                            }
+                                        }
+                                    }
                                 }
-
-                                if json_part == "[DONE]" {
+                            }
+                            Err(e) => {
+                                if tx
+                                    .send(Err(StreamError::Utf8(e.into()).into()))
+                                    .await
+                                    .is_err()
+                                {
                                     return;
-                                }
-
-                                match serde_json::from_str::<T>(json_part) {
-                                    Ok(item) => {
-                                        if tx.send(Ok(item)).await.is_err() {
-                                            return;
-                                        }
-                                    }
-                                    Err(e) => {
-                                        if tx.send(Err(e.into())).await.is_err() {
-                                            return;
-                                        }
-                                    }
                                 }
                             }
                         }
                     }
                 }
                 Err(e) => {
-                    let _ = tx.send(Err(e)).await;
+                    let _ = tx.send(Err(StreamError::Transport(e.into()).into())).await;
                     return;
                 }
             }

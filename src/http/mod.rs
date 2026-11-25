@@ -1,5 +1,5 @@
 pub mod error;
-pub use error::Error as HttpError;
+pub use error::HttpError;
 
 pub mod socket;
 pub use socket::Socket;

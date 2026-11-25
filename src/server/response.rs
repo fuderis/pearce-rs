@@ -248,7 +248,7 @@ impl Response {
     #[cfg(feature = "stream")]
     pub fn stream<H, Fut>(mut self, handler: H, buffer_size: usize) -> Self
     where
-        H: FnOnce(crate::stream::SseSender<bytes::Bytes>) -> Fut + Send + 'static,
+        H: FnOnce(tokio::sync::mpsc::Sender<bytes::Bytes>) -> Fut + Send + 'static,
         Fut: Future<Output = ()> + Send + 'static,
     {
         let body = crate::stream::stream_body(handler, buffer_size);

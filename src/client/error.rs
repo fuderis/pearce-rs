@@ -1,7 +1,7 @@
 use macron::{Display, Error, From};
 
 #[derive(Debug, Display, Error, From)]
-pub enum Error {
+pub enum ClientError {
     #[display(fmt = "Invalid URL string `{0}`.")]
     InvalidUrl(String),
 

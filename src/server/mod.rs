@@ -1,7 +1,7 @@
 //! HTTP server module.
 
 pub mod error;
-pub use error::Error as ServerError;
+pub use error::ServerError;
 
 pub mod response;
 pub use response::Response;

@@ -1,7 +1,7 @@
 //! HTTP client module.
 
 pub mod error;
-pub use error::Error as ClientError;
+pub use error::ClientError;
 
 use crate::{Header, IntoHeader, Method, prelude::*};
 
@@ -264,16 +264,18 @@ impl Request {
     #[cfg(feature = "stream")]
     pub async fn stream<T>(
         self,
-        buffr_size: usize,
-    ) -> Result<crate::stream::SseReceiver<T>, DynError>
+        buffer_size: usize,
+    ) -> Result<tokio::sync::mpsc::Receiver<Result<T, Error>>, Error>
     where
         T: DeserializeOwned + Send + 'static,
     {
         use futures::StreamExt;
 
         let response = self.send().await?;
-        let stream = response.bytes_stream().map(|v| v.map_err(Into::into));
+        let stream = response
+            .bytes_stream()
+            .map(|v| v.map_err(ClientError::from).map_err(Error::from));
 
-        Ok(crate::stream::stream_reader(stream, buffr_size))
+        Ok(crate::stream::stream_reader(stream, buffer_size))
     }
 }
