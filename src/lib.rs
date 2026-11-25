@@ -18,23 +18,19 @@ pub mod error;
 pub use error::Error;
 
 pub mod http;
-#[cfg(feature = "server")]
-pub use http::Headers;
-pub use http::{Header, HeaderBody, IntoHeader, Method, Socket, Status};
-
-#[cfg(feature = "server")]
-pub mod server;
-#[cfg(feature = "server")]
-pub use server::{Callback, CallbackReceiver, Json, Paths, Query, Response, Server, axum, url};
-
-#[cfg(feature = "client")]
-pub mod client;
-#[cfg(feature = "client")]
-pub use client::{Client, Proxy, Request, reqwest};
+pub use http::*;
 
 #[cfg(feature = "stream")]
 pub mod stream;
 #[cfg(feature = "stream")]
-pub use stream::{
-    Bytes, BytesMut, Receiver, Sender, Stream, StreamExt, stream_body, stream_reader,
-};
+pub use stream::*;
+
+#[cfg(feature = "server")]
+pub mod server;
+#[cfg(feature = "server")]
+pub use server::*;
+
+#[cfg(feature = "client")]
+pub mod client;
+#[cfg(feature = "client")]
+pub use client::*;

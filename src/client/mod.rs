@@ -4,15 +4,16 @@ pub mod error;
 pub use error::Error as ClientError;
 
 use crate::{Header, IntoHeader, Method, prelude::*};
-use std::time::Duration;
+
+use std::{sync::LazyLock, time::Duration};
 
 use reqwest::Client as ReqwestClient;
-pub use reqwest::{self, Proxy, Response};
+pub use reqwest::{self, Proxy, Response as ClientResponse};
 
 #[cfg(feature = "stream")]
 use serde::de::DeserializeOwned;
 
-static TCP_CLIENT: State<ReqwestClient> = State::new(|| ReqwestClient::new());
+static TCP_CLIENT: LazyLock<ReqwestClient> = LazyLock::new(ReqwestClient::new);
 
 /// HTTP client (based on [reqwest]).
 #[derive(Debug, Clone)]
@@ -25,7 +26,7 @@ impl Client {
     /// Creates new `TCP` client (clone from state).
     pub fn tcp() -> Self {
         Client {
-            inner: TCP_CLIENT.get_cloned(),
+            inner: TCP_CLIENT.clone(),
             base_url: None,
         }
     }
@@ -41,6 +42,29 @@ impl Client {
         Client {
             inner: req_client,
             base_url: Some("http://127.0.0.1".to_string()),
+        }
+    }
+
+    /// Creates new `IPC` client with Named Pipe support on Windows and Unix socket on Unix.
+    pub fn ipc_np(endpoint: &str) -> Result<Self, Error> {
+        #[cfg(unix)]
+        {
+            let req_client = ReqwestClient::builder()
+                .pool_max_idle_per_host(1)
+                .unix_socket(endpoint)
+                .build()
+                .map_err(ClientError::from)?;
+
+            Ok(Client {
+                inner: req_client,
+                base_url: Some("http://127.0.0.1".to_string()),
+            })
+        }
+
+        #[cfg(windows)]
+        {
+            // TODO: Write Windows Named Pipe support...
+            unimplemented!()
         }
     }
 
@@ -191,7 +215,7 @@ impl Request {
     }
 
     /// Sends request to endpoint.
-    pub async fn send(self) -> Result<Response, Error> {
+    pub async fn send(self) -> Result<ClientResponse, Error> {
         let raw_url = self.client.format_url(&self.path);
 
         let mut url = reqwest::Url::parse(&raw_url)
@@ -238,7 +262,10 @@ impl Request {
     }
 
     #[cfg(feature = "stream")]
-    pub async fn stream<T>(self) -> Result<Receiver<T>, DynError>
+    pub async fn stream<T>(
+        self,
+        buffr_size: usize,
+    ) -> Result<crate::stream::SseReceiver<T>, DynError>
     where
         T: DeserializeOwned + Send + 'static,
     {
@@ -247,6 +274,6 @@ impl Request {
         let response = self.send().await?;
         let stream = response.bytes_stream().map(|v| v.map_err(Into::into));
 
-        Ok(crate::stream::stream_reader(stream))
+        Ok(crate::stream::stream_reader(stream, buffr_size))
     }
 }

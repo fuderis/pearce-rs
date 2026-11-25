@@ -246,12 +246,12 @@ impl Response {
 
     /// Sets SSE stream body from handler.
     #[cfg(feature = "stream")]
-    pub fn stream<H, Fut>(mut self, handler: H) -> Self
+    pub fn stream<H, Fut>(mut self, handler: H, buffer_size: usize) -> Self
     where
-        H: FnOnce(Sender<bytes::Bytes>) -> Fut + Send + 'static,
+        H: FnOnce(crate::stream::SseSender<bytes::Bytes>) -> Fut + Send + 'static,
         Fut: Future<Output = ()> + Send + 'static,
     {
-        let body = crate::stream::stream_body(handler);
+        let body = crate::stream::stream_body(handler, buffer_size);
 
         self = self.content_type_stream();
         self.body = Body::from_stream(body);

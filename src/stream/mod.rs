@@ -1,28 +1,33 @@
-//! SSE stream module.
+//! Server-Sent Events stream module.
 
 use crate::prelude::*;
 
-pub use atoman::{Receiver, Sender};
 pub use bytes::{self, Bytes, BytesMut};
 pub use futures;
 
 pub use futures::{Stream, StreamExt};
 use serde::de::DeserializeOwned;
+use tokio::sync::mpsc;
+
+pub type SseSender<T = Bytes> = mpsc::Sender<Result<T, DynError>>;
+pub type SseReceiver<T> = mpsc::Receiver<Result<T, DynError>>;
 
 /// Creates SSE stream body (Server-Sent Events).
-pub fn stream_body<H, Fut>(handler: H) -> impl Stream<Item = Result<Bytes, DynError>>
+pub fn stream_body<H, Fut>(
+    handler: H,
+    buffer_size: usize,
+) -> impl Stream<Item = Result<Bytes, DynError>>
 where
-    H: FnOnce(Sender<Bytes>) -> Fut + Send + 'static,
+    H: FnOnce(mpsc::Sender<Result<Bytes, DynError>>) -> Fut + Send + 'static,
     Fut: Future<Output = ()> + Send + 'static,
 {
-    let (tx, rx) = atoman::sync::mpsc::unbounded_channel::<Result<Bytes, DynError>>();
+    let (tx, rx) = mpsc::channel::<Result<Bytes, DynError>>(buffer_size);
 
-    atoman::spawn(async move {
-        let sender = Sender::from(tx);
-        handler(sender).await;
+    tokio::spawn(async move {
+        handler(tx).await;
     });
 
-    // creating a stream that wraps each incoming chunk in the SSE format:
+    // creating a stream that wraps each incoming chunk in the SSE format
     futures::stream::unfold(rx, |mut rx| async move {
         match rx.recv().await {
             Some(Ok(bytes)) => {
@@ -40,31 +45,32 @@ where
     })
 }
 
-/// Reads the SSE stream (Server-Sent Events)
+/// Reads SSE stream for StreamExt implementations (Server-Sent Events).
 pub fn stream_reader<T>(
     mut source: impl Stream<Item = Result<Bytes, DynError>> + Send + Unpin + 'static,
-) -> Receiver<T>
+    buffer_capacity: usize,
+) -> mpsc::Receiver<Result<T, DynError>>
 where
     T: DeserializeOwned + Send + 'static,
 {
-    let (tx, rx) = atoman::channel::<T>(None);
+    let (tx, rx) = mpsc::channel::<Result<T, DynError>>(buffer_capacity);
 
-    atoman::spawn(async move {
+    tokio::spawn(async move {
         let mut buffer = BytesMut::new();
 
         while let Some(res) = source.next().await {
             match res {
                 Ok(bytes) => {
-                    // insert new bytes:
+                    // insert new bytes
                     buffer.extend_from_slice(&bytes);
 
                     // search chunk splitter (\n\n)
                     while let Some(pos) = buffer.windows(2).position(|w| w == b"\n\n") {
-                        // cut off exactly to the end of the message in O(1) without copying:
+                        // cut off exactly to the end of the message in O(1) without copying
                         // (buffer keeps everything AFTER pos +2, and full_message gets the start)
                         let full_message = buffer.split_to(pos + 2).freeze();
 
-                        // parsing from the byte slice (from_utf8 does not allocate):
+                        // parsing from the byte slice (from_utf8 does not allocate)
                         if let Ok(line) = std::str::from_utf8(&full_message) {
                             let trimmed = line.trim();
 
@@ -81,12 +87,12 @@ where
 
                                 match serde_json::from_str::<T>(json_part) {
                                     Ok(item) => {
-                                        if tx.send(item).is_err() {
+                                        if tx.send(Ok(item)).await.is_err() {
                                             return;
                                         }
                                     }
                                     Err(e) => {
-                                        if tx.send_err(e.into()).is_err() {
+                                        if tx.send(Err(e.into())).await.is_err() {
                                             return;
                                         }
                                     }
@@ -96,7 +102,7 @@ where
                     }
                 }
                 Err(e) => {
-                    tx.send_err(e.into()).ok();
+                    let _ = tx.send(Err(e)).await;
                     return;
                 }
             }

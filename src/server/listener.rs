@@ -1,14 +1,14 @@
 use crate::prelude::*;
 
-use atoman::net;
 use std::path::Path;
+use tokio::net;
 
 pub struct IpcListener {
     #[cfg(unix)]
-    pub inner: atoman::net::UnixListener,
+    pub inner: net::UnixListener,
 
     #[cfg(windows)]
-    pub inner: tokio::net::windows::named_pipe::NamedPipeServer,
+    pub inner: net::windows::named_pipe::NamedPipeServer,
 }
 
 impl IpcListener {

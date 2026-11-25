@@ -1,33 +1,30 @@
+use super::ServerError;
 use crate::{
     prelude::*,
     server::{Json, Paths, Response},
 };
 
-use atoman::time;
+use dashmap::DashMap;
+use std::{sync::LazyLock, time::Duration};
+use tokio::{sync::oneshot, time};
 
-pub static CALLBACKS: SharedMap<String, Callback> = SharedMap::new();
+static CALLBACKS: LazyLock<DashMap<String, oneshot::Sender<JsonValue>>> =
+    LazyLock::new(DashMap::new);
 
-/// Server callback sender.
-#[derive(Clone)]
-pub struct Callback {
-    tx: Sender<JsonValue>,
-}
+pub struct Callback;
 
 impl Callback {
     /// Registers callback with specific event `id`.
-    pub async fn register(id: impl Into<String>) -> CallbackReceiver {
+    pub fn register(id: impl Into<String>) -> CallbackReceiver {
         let id = id.into();
-
-        // register in the global state
-        let (tx, rx) = atoman::bounded_channel(1);
-        CALLBACKS.insert(id.clone(), Self { tx }).await;
-
+        let (tx, rx) = oneshot::channel();
+        CALLBACKS.insert(id.clone(), tx);
         CallbackReceiver { id, rx }
     }
 
     /// Removes callback by ID.
-    pub async fn remove(id: impl Into<String>) -> Option<SharedItem<Callback>> {
-        CALLBACKS.remove(&id.into()).await
+    pub fn remove(id: &str) -> bool {
+        CALLBACKS.remove(id).is_some()
     }
 }
 
@@ -36,54 +33,42 @@ pub(crate) async fn handle_callback(
     Paths(id): Paths<String>,
     Json(payload): Json<JsonValue>,
 ) -> Response {
-    // look for and immediately REMOVE the waiting channel
-    if let Some(item) = CALLBACKS.remove(&id).await {
-        let guard = item.read().await;
-        // send payload to the waiting stream
-        let _ = guard.tx.send_async(payload).await;
+    if let Some((_, tx)) = CALLBACKS.remove(&id) {
+        let _ = tx.send(payload);
     }
 
-    // instantly return 200 OK to the client
     Response::ok()
 }
 
 /// Server callback receiver (removes callback on drop).
 pub struct CallbackReceiver {
     id: String,
-    rx: Receiver<JsonValue>,
+    rx: oneshot::Receiver<JsonValue>,
 }
 
 impl CallbackReceiver {
-    /// Receives callback output (returns None if timeout).
-    pub async fn recv<T>(&mut self, timeout: Duration) -> Result<Option<T>, DynError>
+    /// Receives callback output.
+    /// Returns `Ok(None)` if the sender was dropped without sending a value,
+    /// or `Err(ServerError::Timeout)` when the timeout expires.
+    pub async fn recv<T>(&mut self, timeout: Duration) -> Result<Option<T>, Error>
     where
         T: serde::de::DeserializeOwned,
     {
-        // waiting for data from the client with a timeout
-        let wait_res = time::timeout(timeout, self.rx.recv()).await;
+        let wait_res = time::timeout(timeout, &mut self.rx).await;
 
-        // guaranteed memory clearing (even if a timeout occurs)
-        CALLBACKS.remove(&self.id).await;
+        // guaranteed cleanup in case of timeout, error, or success
+        CALLBACKS.remove(&self.id);
 
         match wait_res {
-            Ok(Ok(opt)) => {
-                if let Some(value) = opt {
-                    Ok(Some(json::from_value(value)?))
-                } else {
-                    Ok(None)
-                }
-            }
-            Ok(Err(e)) => Err(e),
-            Err(_) => Ok(None),
+            Ok(Ok(value)) => Ok(Some(json::from_value(value)?)),
+            Ok(Err(_)) => Ok(None),
+            Err(_) => Err(ServerError::Timeout.into()),
         }
     }
 }
 
 impl Drop for CallbackReceiver {
     fn drop(&mut self) {
-        let id = self.id.clone();
-        atoman::spawn(async move {
-            CALLBACKS.remove(&id).await;
-        });
+        CALLBACKS.remove(&self.id);
     }
 }

@@ -9,7 +9,9 @@ pub use response::Response;
 pub mod listener;
 pub use listener::IpcListener;
 
+#[cfg(feature = "callback")]
 pub mod callback;
+#[cfg(feature = "callback")]
 pub use callback::{Callback, CallbackReceiver};
 
 pub use axum::{
@@ -26,12 +28,13 @@ pub use validator::{self, Validate, ValidationError};
 
 use crate::{Socket, http::SocketGuard, prelude::*};
 
-use atoman::net::TcpListener;
 use axum::{Router, handler::Handler};
+use tokio::net::TcpListener;
 
 /// HTTP server (based on [axum]).
 pub struct Server {
     router: Router,
+    #[cfg(feature = "callback")]
     enable_callback: bool,
 }
 
@@ -40,6 +43,7 @@ impl Server {
     pub fn new() -> Self {
         Self {
             router: Router::new(),
+            #[cfg(feature = "callback")]
             enable_callback: false,
         }
     }
@@ -114,6 +118,7 @@ impl Server {
     }
 
     /// Includes hidden POST endpoint `/callback/{id}`.
+    #[cfg(feature = "callback")]
     pub fn callback(mut self, enable: bool) -> Self {
         self.enable_callback = enable;
         self
@@ -121,9 +126,9 @@ impl Server {
 
     /// Launching server at specific address (TCP/IPC).
     #[async_recursion]
-    pub async fn run(mut self, addr: impl Into<Socket> + Send + 'static) -> Result<(), Error> {
+    pub async fn run(self, addr: impl Into<Socket> + Send + 'static) -> Result<(), Error> {
+        #[cfg(feature = "callback")]
         if self.enable_callback {
-            self.enable_callback = false;
             self.router = self
                 .router
                 .route("/callback/{id}", routing::post(callback::handle_callback));
