@@ -20,11 +20,6 @@ pub use error::Error;
 pub mod http;
 pub use http::*;
 
-#[cfg(feature = "stream")]
-pub mod stream;
-#[cfg(feature = "stream")]
-pub use stream::*;
-
 #[cfg(feature = "server")]
 pub mod server;
 #[cfg(feature = "server")]
@@ -34,3 +29,8 @@ pub use server::*;
 pub mod client;
 #[cfg(feature = "client")]
 pub use client::*;
+
+#[cfg(feature = "stream")]
+pub mod stream;
+#[cfg(feature = "stream")]
+pub use stream::*;

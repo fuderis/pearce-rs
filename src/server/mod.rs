@@ -126,7 +126,7 @@ impl Server {
 
     /// Launching server at specific address (TCP/IPC).
     #[async_recursion]
-    pub async fn run(self, addr: impl Into<Socket> + Send + 'static) -> Result<(), Error> {
+    pub async fn run(mut self, addr: impl Into<Socket> + Send + 'static) -> Result<(), Error> {
         #[cfg(feature = "callback")]
         if self.enable_callback {
             self.router = self
